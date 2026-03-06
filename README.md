@@ -2,7 +2,6 @@
 
 ## ToDo
 
-1. Fix rendering issues in border between grid and tile pool
 1. **Be able to pickup placed tiles** -> Requires Integration with puzzle journal?
 1. **Don't draw over placed tiles** -> Requires Integration with puzzle journal?
 1. Figure out color system

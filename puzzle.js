@@ -29,16 +29,24 @@ function initPuzzle(puzzleTypeIn) {
 }
 
 function translatePixelPosToGridPos(x, y, tileType) {
-    if (x > tilePoolStart) {
-        return false
+    let xTilePixelPosStart = x - Math.floor(tileType * squareSide / 2)
+    let xTilePixelPosEnd = x + Math.floor(tileType * squareSide / 2) + 1
+    let xSqu = 0
+    let ySqu = 0
+
+    if (xTilePixelPosStart >= canvasHeight || xTilePixelPosEnd >= canvasHeight) {
+        xSqu = puzzleLength - tileType
+        ySqu = Math.min(Math.max(Math.round(y / squareSide)
+            - Math.round(tileType / 2), 0), puzzleLength)
+        return { xSqu, ySqu }
     }
 
-    let xSqu = Math.min(Math.max(Math.round(x / squareSide)
+    xSqu = Math.min(Math.max(Math.round(x / squareSide)
         - Math.round(tileType / 2), 0), puzzleLength)
-    let ySqu = Math.min(Math.max(Math.round(y / squareSide)
-        - Math.round(tileType / 2), 0), puzzleLength)
+    ySqu = Math.min(Math.max(Math.round(y / squareSide)
+        - Math.round(tileType / 2), 0), puzzleLength - tileType)
 
-    return { xSqu, ySqu, }
+    return { xSqu, ySqu }
 }
 
 function drawTile(size, x, y, color = "black") {
@@ -94,9 +102,9 @@ function drawTilePoolElement(x, y, size, number = 1) {
 
     let elementWidth = size * squareSide + widthCorrection
     let elementHeight = size * squareSide + heightCorrection
-    //ctx.strokeRect(x + tilePoolStart, y, elementWidth, elementHeight)
+    ctx.strokeRect(x + tilePoolStart, y, elementWidth, elementHeight)
 
-    return elementWidth, elementHeight
+    return { elementWidth, elementHeight }
 }
 
 function drawTilePool() {
@@ -153,6 +161,16 @@ function getTileSelectAtPos(x, y) {
         x >= i.xStart && x <= i.xEnd && y >= i.yStart && y <= i.yEnd)
 }
 
+function handlePointerLeave(event) {
+    selectionActive = false
+    selectedTile = false
+    if (selectionTileOnGrid) {
+        clearGridInSqUnits()
+        drawGridInSqUnits()
+        selectionTileOnGrid = false
+    }
+}
+
 function handlePointerMove(event) {
     clearTilePool()
     const rect = canvas.getBoundingClientRect()
@@ -172,9 +190,9 @@ function handlePointerMove(event) {
         let yRenderPos = y + selectedTile.yShift
         let { xSqu, ySqu } = translatePixelPosToGridPos(x, y, tileType)
 
-        if (x >= tilePoolStart) {
+        if (xRenderPos >= tilePoolStart) {
             drawTile(tileType, xRenderPos, yRenderPos, "green")
-        } else if (x < tilePoolStart) {
+        } else {
             selectionTileOnGrid = true
             selectedTile.xSqU = xSqu
             selectedTile.ySqU = ySqu
@@ -187,13 +205,12 @@ function handlePointerMove(event) {
 }
 
 function handlePointerDown(event) {
-    selectionActive = true
-
     const rect = canvas.getBoundingClientRect()
     const x = event.pageX - rect.left
     const y = event.pageY - rect.top
     const foundTile = getTileSelectAtPos(x, y)
     if (foundTile) {
+        selectionActive = true
         selectedTile = foundTile
     }
 }
@@ -207,6 +224,7 @@ function handlePointerUp(event) {
     }
 }
 
+canvas.addEventListener("pointerleave", handlePointerLeave)
 canvas.addEventListener("pointermove", handlePointerMove)
 canvas.addEventListener("pointerdown", handlePointerDown)
 canvas.addEventListener("pointerup", handlePointerUp)
