@@ -8,9 +8,24 @@
 </head>
 
 <body>
-    <canvas id="canvas" width="950" height="475">
-        Failed to Load Puzzle
-    </canvas>
+    <div class="content">
+        <div id="app">
+            <canvas id="canvas" width="1200" height="600" class="appElements">
+                Failed to Load Puzzle
+            </canvas>
+            <div id="controls" class="appElements">
+                <input type="number" min="1" max="16" value="9" id="puzzleTypeInput">
+                <button class="button-pretty">Test Current Configuration</button>
+                <div id="controlSolFinder">
+                    <button class="button-pretty">Find a Solution</button>
+                    <div id="visualizer">
+                        <label>Visualizer:</label>
+                        <input type="checkbox">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <script type="module" src="puzzle.js"></script>
 </body>
 
