@@ -1,3 +1,10 @@
+import {
+    Align, Direction,
+    Edge, FlexDirection,
+    Justify,
+    Wrap, loadYoga
+} from 'yoga-layout/load'
+
 /** @type {HTMLCanvasElement} */
 let canvas = null
 let ctx = null
@@ -9,14 +16,67 @@ let puzzleLength
 let squareSide
 let tilePoolStart
 let tilePoolCenter
+let tileUIElements
 let tileSelectLocations = []
 
 let selectionActive = false
 let selectionTileOnGrid = false
 let selectedTile = {}
 
+async function calculateTilePoolLayout(puzzleType) {
+    let tileUIElements = new Array(puzzleType).fill().map((_, i) => i + 1)
+    tileUIElements = tileUIElements.map(tileType => ({
+        tileType,
+        ...calculateTilePoolElement(tileType)
+    }))
 
-function initPuzzle(puzzleTypeIn) {
+    const Yoga = await loadYoga()
+
+    const config = Yoga.Config.create();
+    config.setUseWebDefaults(false)
+
+    const tilePool = Yoga.Node.create(config)
+    tilePool.setWidth(canvasHeight)
+    tilePool.setHeight(canvasHeight)
+    tilePool.setAlignItems(Align.Center)
+    tilePool.setJustifyContent(Justify.Center)
+
+    const boundingBox = Yoga.Node.create(config)
+    boundingBox.setMaxWidth(canvasHeight)
+    boundingBox.setPadding(Edge.All, 5)
+    boundingBox.setFlexDirection(FlexDirection.Row)
+    boundingBox.setFlexWrap(Wrap.Wrap)
+    boundingBox.setJustifyContent(Justify.Center)
+    tilePool.insertChild(boundingBox, 0)
+
+    let yogaNodes = []
+    tileUIElements.forEach((elem, index) => {
+        const node = Yoga.Node.create(config)
+        node.setWidth(elem.elementWidth)
+        node.setHeight(elem.elementHeight)
+        node.setMargin(Edge.All, 5)
+        yogaNodes.push({
+            tileType: elem.tileType,
+            yogaNode: node
+        })
+        boundingBox.insertChild(node, index)
+    })
+
+    tilePool.calculateLayout(canvasHeight, canvasHeight, Direction.LTR)
+
+    yogaNodes.forEach(elem => {
+        tileUIElements[elem.tileType - 1]['computedLeft']
+            = elem.yogaNode.getComputedLayout().left + tilePoolStart
+        tileUIElements[elem.tileType - 1]['computedTop']
+            = elem.yogaNode.getComputedLayout().top + boundingBox.getComputedTop()
+    })
+
+    tilePool.freeRecursive()
+
+    return tileUIElements
+}
+
+async function initPuzzle(puzzleTypeIn) {
     puzzleType = puzzleTypeIn
     puzzleLength = puzzleType * (puzzleType + 1) / 2
     squareSide = Math.floor(canvasHeight * 5 / puzzleLength) / 5
@@ -26,6 +86,8 @@ function initPuzzle(puzzleTypeIn) {
         xCoord: tilePoolStart + (canvasWidth - tilePoolStart) / 2,
         yCoord: canvasHeight / 2
     }
+
+    tileUIElements = await calculateTilePoolLayout(puzzleType)
 }
 
 function translatePixelPosToGridPos(x, y, tileType) {
@@ -58,8 +120,34 @@ function clearTilePool() {
     ctx.clearRect(tilePoolStart - 1, 0, canvasWidth - tilePoolStart + 2, canvasHeight + 1)
 }
 
+function calculateTilePoolElement(size) {
+    let fontSize = 25 > squareSide ? 25 : squareSide
+    ctx.font = fontSize + "px monospace"
+    ctx.textAlign = "center"
+    ctx.textBaseline = "middle";
+
+    let widthCorrection = 0
+    const text = ctx.measureText("x" + size);
+    if (size * squareSide < text.width) {
+        widthCorrection = text.width + 5
+    }
+
+    let heightCorrection = 0
+    if (size * squareSide < fontSize) {
+        heightCorrection = fontSize - size * squareSide
+    }
+
+    let elementWidth = size * squareSide + widthCorrection
+    let elementHeight = size * squareSide + heightCorrection
+
+    return { elementWidth, elementHeight }
+}
+
 function drawTilePoolElement(x, y, size, number = 1) {
     let fontSize = 25 > squareSide ? 25 : squareSide
+    if (puzzleType == 1) {
+        fontSize = squareSide * 0.80
+    }
     ctx.font = fontSize + "px monospace"
     ctx.textAlign = "center"
     ctx.textBaseline = "middle";
@@ -72,15 +160,17 @@ function drawTilePoolElement(x, y, size, number = 1) {
         x_correction = widthCorrection - text.width / 2
     }
 
+    console.log(squareSide, text.width)
+
     let heightCorrection = 0
     if (size * squareSide < fontSize) {
         heightCorrection = fontSize - size * squareSide
     }
 
-    drawTile(size, x + tilePoolStart, y + heightCorrection / 2)
+    drawTile(size, x, y + heightCorrection / 2)
     let thisTileSelectLoc = {
-        xStart: x + tilePoolStart,
-        xEnd: x + tilePoolStart + size * squareSide,
+        xStart: x,
+        xEnd: x + size * squareSide,
         yStart: y + heightCorrection / 2,
         yEnd: y + heightCorrection / 2 + size * squareSide,
         type: size,
@@ -93,12 +183,12 @@ function drawTilePoolElement(x, y, size, number = 1) {
 
     ctx.fillStyle = "white"
     ctx.fillText("x" + number,
-        x + tilePoolStart + size * squareSide + x_correction,
+        x + size * squareSide + x_correction,
         y + (size * squareSide + heightCorrection) / 2);
 
     let elementWidth = size * squareSide + widthCorrection
     let elementHeight = size * squareSide + heightCorrection
-    ctx.strokeRect(x + tilePoolStart, y, elementWidth, elementHeight)
+    ctx.strokeRect(x, y, elementWidth, elementHeight)
 
     return { elementWidth, elementHeight }
 }
@@ -118,15 +208,19 @@ function drawTilePool() {
     ctx.stroke()
 
     ctx.strokeStyle = "grey"
-    drawTilePoolElement(0, 5, 1, 1)
-    drawTilePoolElement(70, 5, 2, 2)
-    drawTilePoolElement(150, 5, 3, 3)
-    drawTilePoolElement(200, 5, 4, 4)
-    drawTilePoolElement(260, 5, 5, 5)
-    drawTilePoolElement(330, 5, 6, 6)
-    drawTilePoolElement(0, 80, 7, 7)
-    drawTilePoolElement(100, 80, 8, 8)
-    drawTilePoolElement(220, 80, 9, 9)
+    /*     drawTilePoolElement(0, 5, 1, 1)
+        drawTilePoolElement(70, 5, 2, 2)
+        drawTilePoolElement(150, 5, 3, 3)
+        drawTilePoolElement(200, 5, 4, 4)
+        drawTilePoolElement(260, 5, 5, 5)
+        drawTilePoolElement(330, 5, 6, 6)
+        drawTilePoolElement(0, 80, 7, 7)
+        drawTilePoolElement(100, 80, 8, 8)
+        drawTilePoolElement(220, 80, 9, 9) */
+
+    tileUIElements.forEach(elem => {
+        drawTilePoolElement(elem.computedLeft, elem.computedTop, elem.tileType, elem.tileType)
+    })
 }
 
 function clearGridInSqUnits(xSqU = 0, ySqU = 0, size = puzzleLength) {
@@ -230,9 +324,6 @@ function initCanvas() {
     canvas = document.getElementById("canvas")
     ctx = canvas.getContext("2d")
 
-    canvasHeight = Number(canvas.getAttribute("Height"))
-    canvasWidth = Number(canvas.getAttribute("Width"))
-
     // Get the DPR and size of the canvas
     const dpr = window.devicePixelRatio;
     const rect = canvas.getBoundingClientRect();
@@ -240,6 +331,9 @@ function initCanvas() {
     // Set the "actual" size of the canvas
     canvas.height = rect.height * dpr;
     canvas.width = rect.width * dpr;
+
+    canvasHeight = Number(canvas.getAttribute("Height"))
+    canvasWidth = Number(canvas.getAttribute("Width"))
 
     // Scale the context to ensure correct drawing operations
     ctx.scale(dpr, dpr);
@@ -257,16 +351,16 @@ function initCanvas() {
 const puzzleTypeInput = document.getElementById("puzzleTypeInput")
 
 puzzleTypeInput.addEventListener("change", () => {
-    clearGridInSqUnits()
-    clearTilePool()
-    initPuzzle(puzzleTypeInput.valueAsNumber)
-    drawGridInSqUnits()
-    drawTilePool()
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight)
+    initPuzzle(puzzleTypeInput.valueAsNumber).then(() => {
+        drawGridInSqUnits()
+        drawTilePool()
+    })
     tileSelectLocations = []
 })
 
 initCanvas()
 
-initPuzzle(puzzleTypeInput.valueAsNumber)
+await initPuzzle(puzzleTypeInput.valueAsNumber)
 drawGridInSqUnits()
 drawTilePool()

@@ -1,0 +1,27 @@
+{
+  "name": "partridge-web",
+  "version": "0.2.0",
+  "description": "A web-based front end for my partridge solver in C compiled to WASM.",
+  "homepage": "https://github.com/x-snackage-x/partridge-web#readme",
+  "bugs": {
+    "url": "https://github.com/x-snackage-x/partridge-web/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/x-snackage-x/partridge-web.git"
+  },
+  "license": "MIT",
+  "author": "x-snackage-x",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "yoga-layout": "^3.2.1"
+  },
+  "devDependencies": {
+    "vite": "^7.3.1"
+  }
+}
