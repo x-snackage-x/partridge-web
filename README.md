@@ -1,5 +1,11 @@
 # Partridge Puzzle Web-based Frontend
 
+A web-based front end for my [partridge-solver](https://github.com/x-snackage-x/partridge-solver) in C and compiled to WASM.
+
+## Dependencies
+
+The layout of the Tile Select area of the Puzzle-Canvas was implemented with the help of of the [Yoga Layout Engine](https://www.yogalayout.dev/).
+
 ## ToDo
 
 1. **Be able to pickup placed tiles** -> Requires Integration with puzzle journal?
