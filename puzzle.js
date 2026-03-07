@@ -1,8 +1,8 @@
 /** @type {HTMLCanvasElement} */
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-const canvasHeight = Number(canvas.getAttribute("Height"))
-const canvasWidth = Number(canvas.getAttribute("Width"))
+let canvas = null
+let ctx = null
+let canvasHeight = 0
+let canvasWidth = 0
 
 let puzzleType
 let puzzleLength
@@ -19,7 +19,7 @@ let selectedTile = {}
 function initPuzzle(puzzleTypeIn) {
     puzzleType = puzzleTypeIn
     puzzleLength = puzzleType * (puzzleType + 1) / 2
-    squareSide = Math.round(canvasHeight * 2 / puzzleLength) / 2
+    squareSide = Math.floor(canvasHeight * 5 / puzzleLength) / 5
     tilePoolStart = canvasHeight + 10.5
 
     tilePoolCenter = {
@@ -31,20 +31,16 @@ function initPuzzle(puzzleTypeIn) {
 function translatePixelPosToGridPos(x, y, tileType) {
     let xTilePixelPosStart = x - Math.floor(tileType * squareSide / 2)
     let xTilePixelPosEnd = x + Math.floor(tileType * squareSide / 2) + 1
-    let xSqu = 0
-    let ySqu = 0
 
-    if (xTilePixelPosStart >= canvasHeight || xTilePixelPosEnd >= canvasHeight) {
-        xSqu = puzzleLength - tileType
-        ySqu = Math.min(Math.max(Math.round(y / squareSide)
-            - Math.round(tileType / 2), 0), puzzleLength)
-        return { xSqu, ySqu }
-    }
-
-    xSqu = Math.min(Math.max(Math.round(x / squareSide)
+    let xSqu = Math.min(Math.max(Math.round(x / squareSide)
         - Math.round(tileType / 2), 0), puzzleLength)
-    ySqu = Math.min(Math.max(Math.round(y / squareSide)
+    let ySqu = Math.min(Math.max(Math.round(y / squareSide)
         - Math.round(tileType / 2), 0), puzzleLength - tileType)
+
+    if (xTilePixelPosStart >= canvasHeight || xTilePixelPosEnd >= canvasHeight
+        || (xSqu + tileType) * squareSide >= puzzleLength * squareSide) {
+        xSqu = puzzleLength - tileType
+    }
 
     return { xSqu, ySqu }
 }
@@ -59,7 +55,7 @@ function placeTileGrid(size, xSqU, ySqU) {
 }
 
 function clearTilePool() {
-    ctx.clearRect(tilePoolStart, 0, canvasWidth - tilePoolStart, canvasHeight)
+    ctx.clearRect(tilePoolStart - 1, 0, canvasWidth - tilePoolStart + 2, canvasHeight + 1)
 }
 
 function drawTilePoolElement(x, y, size, number = 1) {
@@ -134,8 +130,8 @@ function drawTilePool() {
 }
 
 function clearGridInSqUnits(xSqU = 0, ySqU = 0, size = puzzleLength) {
-    ctx.clearRect(xSqU * squareSide, ySqU * squareSide,
-        size * squareSide + 1, size * squareSide + 1)
+    ctx.clearRect(xSqU * squareSide - 1, ySqU * squareSide - 1,
+        size * squareSide + 2, size * squareSide + 2)
 }
 function drawGridInSqUnits(xSqU = 0, ySqU = 0, size = puzzleLength) {
     ctx.strokeStyle = "grey"
@@ -164,9 +160,13 @@ function getTileSelectAtPos(x, y) {
 function handlePointerLeave(event) {
     selectionActive = false
     selectedTile = false
+
+    clearTilePool()
+    drawTilePool()
+
     if (selectionTileOnGrid) {
-        clearGridInSqUnits()
-        drawGridInSqUnits()
+        clearGridInSqUnits(selectedTile.xSqU, selectedTile.ySqU, selectedTile.type)
+        drawGridInSqUnits(selectedTile.xSqU, selectedTile.ySqU, selectedTile.type)
         selectionTileOnGrid = false
     }
 }
@@ -174,8 +174,8 @@ function handlePointerLeave(event) {
 function handlePointerMove(event) {
     clearTilePool()
     const rect = canvas.getBoundingClientRect()
-    const x = event.pageX - rect.left
-    const y = event.pageY - rect.top
+    const x = event.pageX - rect.left - scrollX
+    const y = event.pageY - rect.top - scrollY
 
     drawTilePool()
 
@@ -200,14 +200,16 @@ function handlePointerMove(event) {
         }
     } else {
         const foundTile = getTileSelectAtPos(x, y)
-        if (foundTile) { drawTile(foundTile.type, foundTile.xStart, foundTile.yStart, "red") }
+        if (foundTile) {
+            drawTile(foundTile.type, foundTile.xStart, foundTile.yStart, "red")
+        }
     }
 }
 
 function handlePointerDown(event) {
     const rect = canvas.getBoundingClientRect()
-    const x = event.pageX - rect.left
-    const y = event.pageY - rect.top
+    const x = event.pageX - rect.left - scrollX
+    const y = event.pageY - rect.top - scrollY
     const foundTile = getTileSelectAtPos(x, y)
     if (foundTile) {
         selectionActive = true
@@ -224,13 +226,47 @@ function handlePointerUp(event) {
     }
 }
 
-canvas.addEventListener("pointerleave", handlePointerLeave)
-canvas.addEventListener("pointermove", handlePointerMove)
-canvas.addEventListener("pointerdown", handlePointerDown)
-canvas.addEventListener("pointerup", handlePointerUp)
+function initCanvas() {
+    canvas = document.getElementById("canvas")
+    ctx = canvas.getContext("2d")
 
-initPuzzle(9)
+    canvasHeight = Number(canvas.getAttribute("Height"))
+    canvasWidth = Number(canvas.getAttribute("Width"))
+
+    // Get the DPR and size of the canvas
+    const dpr = window.devicePixelRatio;
+    const rect = canvas.getBoundingClientRect();
+
+    // Set the "actual" size of the canvas
+    canvas.height = rect.height * dpr;
+    canvas.width = rect.width * dpr;
+
+    // Scale the context to ensure correct drawing operations
+    ctx.scale(dpr, dpr);
+
+    // Set the "drawn" size of the canvas
+    canvas.style.height = `${rect.height}px`;
+    canvas.style.width = `${rect.width}px`;
+
+    canvas.addEventListener("pointerleave", handlePointerLeave)
+    canvas.addEventListener("pointermove", handlePointerMove)
+    canvas.addEventListener("pointerdown", handlePointerDown)
+    canvas.addEventListener("pointerup", handlePointerUp)
+}
+
+const puzzleTypeInput = document.getElementById("puzzleTypeInput")
+
+puzzleTypeInput.addEventListener("change", () => {
+    clearGridInSqUnits()
+    clearTilePool()
+    initPuzzle(puzzleTypeInput.valueAsNumber)
+    drawGridInSqUnits()
+    drawTilePool()
+    tileSelectLocations = []
+})
+
+initCanvas()
+
+initPuzzle(puzzleTypeInput.valueAsNumber)
 drawGridInSqUnits()
-
 drawTilePool()
-
