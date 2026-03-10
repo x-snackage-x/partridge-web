@@ -10,6 +10,7 @@ import createModule from './solWASM/solWASM'
 import SolverWorker from './isSolvable.worker.js?worker';
 
 let worker = null
+let trafficLightState = -1
 
 /** @type {HTMLCanvasElement} */
 let canvas = null
@@ -97,7 +98,7 @@ async function calculateTilePoolLayout(puzzleType) {
 
     const config = Yoga.Config.create();
     config.setUseWebDefaults(false)
-    console.log(canvasWidth - canvasHeight)
+
     const tilePool = Yoga.Node.create(config)
     tilePool.setWidth(canvasWidth - canvasHeight)
     tilePool.setHeight(canvasHeight)
@@ -159,6 +160,7 @@ async function initPuzzle(puzzleTypeIn) {
         tilePoolStart = squareSide * puzzleLength + 10.5
     }
 
+    trafficLightState = -5
     changeTrafficLight(-1)
     tileUIElements = await calculateTilePoolLayout(puzzleType)
 
@@ -361,33 +363,39 @@ function changeTrafficLight(changeTo) {
     switch (changeTo) {
         case -1:
         default:
-            document.getElementById("sign")
-                .setAttribute("fill", "grey")
-            document.getElementById("sign").setAttribute("stroke-width", "0")
-            document.getElementById("spinner").setAttribute("stroke-width", "0")
+            if (trafficLightState == -5 || trafficLightState == 0 || trafficLightState == 1) {
+                document.getElementById("sign")
+                    .setAttribute("fill", "grey")
+                document.getElementById("sign").setAttribute("stroke-width", "0")
+                document.getElementById("spinner").setAttribute("stroke-width", "0")
+                trafficLightState = -1
+            }
             break;
         case -2:
             document.getElementById("sign")
                 .setAttribute("fill", "grey")
             document.getElementById("sign").setAttribute("stroke-width", "0")
             document.getElementById("spinner").setAttribute("stroke-width", "3")
+            trafficLightState = -2
             break;
         case 0:
             document.getElementById("sign")
                 .setAttribute("fill", "rgb(211, 20, 20)")
             document.getElementById("sign").setAttribute("stroke-width", "1")
             document.getElementById("spinner").setAttribute("stroke-width", "0")
+            trafficLightState = 0
             break;
         case 1:
             document.getElementById("sign")
                 .setAttribute("fill", "rgb(41, 161, 61)")
             document.getElementById("sign").setAttribute("stroke-width", "1")
             document.getElementById("spinner").setAttribute("stroke-width", "0")
+            trafficLightState = 1
             break;
     }
 }
 
-function handlePointerLeave(event) {
+function handlePointerLeave() {
     selectionActive = false
     selectedTile = false
 
@@ -503,11 +511,8 @@ function initCanvas() {
     canvas = document.getElementById("canvas")
     ctx = canvas.getContext("2d")
 
-    canvasHeight = Number(canvas.getAttribute("Height"))
-    canvasWidth = Number(canvas.getAttribute("Width"))
-
     // Get the DPR and size of the canvas
-    const dpr = window.devicePixelRatio;
+    const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
 
     // Set the "actual" size of the canvas
@@ -516,6 +521,9 @@ function initCanvas() {
 
     // Scale the context to ensure correct drawing operations
     ctx.scale(dpr, dpr);
+
+    canvasHeight = rect.height
+    canvasWidth = rect.width
 
     // Set the "drawn" size of the canvas
     canvas.style.height = `${rect.height}px`;
@@ -539,15 +547,17 @@ puzzleTypeInput.addEventListener("change", () => {
     tileSelectLocations = []
 })
 
-function determineIsSolvable(event) {
+function determineIsSolvable(withResults) {
     changeTrafficLight(-2)
     journalRemoveThresholdIndex = api.getPuzJournalSize()
     let dataObj = {
         puzzleStruct_size: puzzleStruct_size,
         puzzleType: puzzleType,
         journalEntries: getJournalEntries(),
+        withResults: withResults,
     }
     isSolvableButton.disabled = true
+    findSolutionButton.disabled = true
 
     // Trigger the heavy task in the background
     worker.postMessage({ type: 'START_SEARCH', message: dataObj });
@@ -566,20 +576,32 @@ function startNewSolverWorker() {
         if (type === 'READY') {
             // Enable button once WASM is loaded
             isSolvableButton.disabled = false
+            findSolutionButton.disabled = false
         } else if (type === 'RESULT') {
+            const { result, entries } = message
             journalRemoveThresholdIndex = 0
 
             isSolvableButton.disabled = false
-            changeTrafficLight(message)
+            findSolutionButton.disabled = false
+            changeTrafficLight(result)
+            entries.forEach(elem => {
+                placeTileGrid(...Object.values(elem))
+            })
         }
     };
 }
 
 const isSolvableButton = document.getElementById("isSolvableButton")
 isSolvableButton.disabled = true
-isSolvableButton.addEventListener("click", determineIsSolvable)
+isSolvableButton.addEventListener("click", () => {
+    determineIsSolvable(false)
+})
 
 const findSolutionButton = document.getElementById("findSolutionButton")
+findSolutionButton.disabled = true
+findSolutionButton.addEventListener("click", () => {
+    determineIsSolvable(true)
+})
 
 initCanvas()
 await initializeModel()

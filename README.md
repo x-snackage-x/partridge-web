@@ -15,10 +15,10 @@ The layout of the Tile Select area of the Puzzle-Canvas was implemented with the
 1. ~~**Be able to pickup placed tiles** -> Requires Integration with puzzle journal?~~ Done
 1. ~~**Don't draw over placed tiles** -> Requires Integration with puzzle journal?~~ Done
 1. implement expected draw interface to C-Code
-1. **Integrate with ~~puzzle journal/puzzle logic~~/solver** -> Emscripten research
+1. **Integrate with ~~puzzle journal/puzzle logic/solver~~/visualizer** -> Emscripten research
 1. Don't render on every mouse event -> Refactor to render loop
 1. ~~Figure out tile color system~~ Done
-1. Spinner for ongoing processes / Result light
+1. ~~Spinner for ongoing processes / Result light~~ Done
 1. Text Content
     - Figure out/research how to do the vertical expanding pane
     - Multiple language support
