@@ -5,6 +5,8 @@ import {
     Wrap, loadYoga
 } from 'yoga-layout/load'
 
+import createModule from './solWASM/solWASM'
+
 /** @type {HTMLCanvasElement} */
 let canvas = null
 let ctx = null
@@ -15,7 +17,6 @@ let puzzleType
 let puzzleLength
 let squareSide
 let tilePoolStart
-let tilePoolCenter
 let tileUIElements
 let tileSelectLocations = []
 
@@ -23,7 +24,52 @@ let selectionActive = false
 let selectionTileOnGrid = false
 let selectedTile = {}
 
+
+let puzzleStruct_size = 0
+let puzJournalEntryStruct_size = 0
+let Module
+let my_puzzle_ptr = 0
+let api
+
+async function initializeModel() {
+    Module = await createModule()
+
+    puzzleStruct_size = Module.ccall('get_puzzle_def_size', 'number')
+    my_puzzle_ptr = Module._malloc(puzzleStruct_size)
+
+    puzJournalEntryStruct_size = Module.ccall('get_puz_entry_size', 'number')
+
+    api = {
+        initPuzzleModel: Module.cwrap('init_puzzle', 'void', ['pointer', 'Boolean']),
+        freePuzzle: Module.cwrap('free_puzzle', 'void', ['pointer']),
+
+        placeTile: Module.cwrap('place_block', 'number', ['pointer', 'number', 'number', 'number']),
+        removeTile: Module.cwrap('remove_block', 'number', ['pointer', 'number', 'number', 'number']),
+
+        getnAvailableTiles: Module.cwrap('get_n_available_pieces', 'number', ['pointer', 'number']),
+
+        placementResolvable: Module.cwrap('placement_resolvable', 'Boolean', ['pointer', 'number', 'number', 'number']),
+        isPuzzleSolved: Module.cwrap('is_puzzle_solved', 'Boolean', ['pointer']),
+        getPuzJournalFirstEntryPtr: Module.cwrap('get_first_entry', 'pointer'),
+        getPuzJournalSize: Module.cwrap('get_puz_journal_size', 'number'),
+
+        setVisualizer: Module.cwrap('set_visualizer', 'void', ['pointer', 'pointer', 'pointer', 'pointer']),
+        solutionSetup: Module.cwrap('setup', 'void', ['pointer']),
+        solutionSearch: Module.cwrap('solution_search', 'Boolean', ['void'])
+    }
+}
+
 async function calculateTilePoolLayout(puzzleType) {
+    if (puzzleType == 1) {
+        return [{
+            tileType: 1,
+            elementWidth: squareSide,
+            elementHeight: squareSide,
+            computedLeft: tilePoolStart,
+            computedTop: 10
+        }]
+    }
+
     let tileUIElements = new Array(puzzleType).fill().map((_, i) => i + 1)
     tileUIElements = tileUIElements.map(tileType => ({
         tileType,
@@ -36,13 +82,13 @@ async function calculateTilePoolLayout(puzzleType) {
     config.setUseWebDefaults(false)
 
     const tilePool = Yoga.Node.create(config)
-    tilePool.setWidth(canvasHeight)
+    tilePool.setWidth(canvasWidth - canvasHeight)
     tilePool.setHeight(canvasHeight)
     tilePool.setAlignItems(Align.Center)
     tilePool.setJustifyContent(Justify.Center)
 
     const boundingBox = Yoga.Node.create(config)
-    boundingBox.setMaxWidth(canvasHeight)
+    boundingBox.setMaxWidth(canvasWidth - canvasHeight)
     boundingBox.setPadding(Edge.All, 5)
     boundingBox.setFlexDirection(FlexDirection.Row)
     boundingBox.setFlexWrap(Wrap.Wrap)
@@ -62,11 +108,12 @@ async function calculateTilePoolLayout(puzzleType) {
         boundingBox.insertChild(node, index)
     })
 
-    tilePool.calculateLayout(canvasHeight, canvasHeight, Direction.LTR)
+    tilePool.calculateLayout(canvasWidth - canvasHeight, canvasHeight, Direction.LTR)
 
     yogaNodes.forEach(elem => {
         tileUIElements[elem.tileType - 1]['computedLeft']
-            = elem.yogaNode.getComputedLayout().left + tilePoolStart
+            = elem.yogaNode.getComputedLayout().left + canvasHeight +
+            boundingBox.getComputedLeft()
         tileUIElements[elem.tileType - 1]['computedTop']
             = elem.yogaNode.getComputedLayout().top + boundingBox.getComputedTop()
     })
@@ -80,14 +127,22 @@ async function initPuzzle(puzzleTypeIn) {
     puzzleType = puzzleTypeIn
     puzzleLength = puzzleType * (puzzleType + 1) / 2
     squareSide = Math.floor(canvasHeight * 5 / puzzleLength) / 5
-    tilePoolStart = canvasHeight + 10.5
+    tilePoolStart = canvasHeight + 2.5
 
-    tilePoolCenter = {
-        xCoord: tilePoolStart + (canvasWidth - tilePoolStart) / 2,
-        yCoord: canvasHeight / 2
+    // scale down the puzzle for special case of 1 and 2
+    if (puzzleType == 1) {
+        squareSide *= 0.82
+        tilePoolStart = squareSide + 10.5
+    } else if (puzzleType == 2) {
+        squareSide *= 0.97
+        puzzleLength = puzzleType * (puzzleType + 1) / 2
+        tilePoolStart = squareSide * puzzleLength + 10.5
     }
 
     tileUIElements = await calculateTilePoolLayout(puzzleType)
+
+    Module.setValue(my_puzzle_ptr, puzzleType, 'i32')
+    api.initPuzzleModel(my_puzzle_ptr, true)
 }
 
 function translatePixelPosToGridPos(x, y, tileType) {
@@ -98,6 +153,11 @@ function translatePixelPosToGridPos(x, y, tileType) {
         - Math.round(tileType / 2), 0), puzzleLength)
     let ySqu = Math.min(Math.max(Math.round(y / squareSide)
         - Math.round(tileType / 2), 0), puzzleLength - tileType)
+
+    if (tileType == 1) {
+        xSqu = Math.floor(x / squareSide)
+        ySqu = Math.floor(y / squareSide)
+    }
 
     if (xTilePixelPosStart >= canvasHeight || xTilePixelPosEnd >= canvasHeight
         || (xSqu + tileType) * squareSide >= puzzleLength * squareSide) {
@@ -117,7 +177,9 @@ function placeTileGrid(size, xSqU, ySqU) {
 }
 
 function clearTilePool() {
-    ctx.clearRect(tilePoolStart - 1, 0, canvasWidth - tilePoolStart + 2, canvasHeight + 1)
+    ctx.clearRect(tilePoolStart - 1, 0
+        , canvasWidth - tilePoolStart + 2
+        , canvasHeight + 1)
 }
 
 function calculateTilePoolElement(size) {
@@ -160,8 +222,6 @@ function drawTilePoolElement(x, y, size, number = 1) {
         x_correction = widthCorrection - text.width / 2
     }
 
-    console.log(squareSide, text.width)
-
     let heightCorrection = 0
     if (size * squareSide < fontSize) {
         heightCorrection = fontSize - size * squareSide
@@ -188,38 +248,16 @@ function drawTilePoolElement(x, y, size, number = 1) {
 
     let elementWidth = size * squareSide + widthCorrection
     let elementHeight = size * squareSide + heightCorrection
-    ctx.strokeRect(x, y, elementWidth, elementHeight)
 
     return { elementWidth, elementHeight }
 }
 
 function drawTilePool() {
-    ctx.strokeStyle = "green"
-    ctx.beginPath()
-    ctx.moveTo(tilePoolCenter.xCoord, 0)
-    ctx.lineTo(tilePoolCenter.xCoord, canvasHeight)
-    ctx.closePath()
-    ctx.stroke()
-
-    ctx.beginPath()
-    ctx.moveTo(tilePoolStart, tilePoolCenter.yCoord)
-    ctx.lineTo(canvasWidth, tilePoolCenter.yCoord)
-    ctx.closePath()
-    ctx.stroke()
-
     ctx.strokeStyle = "grey"
-    /*     drawTilePoolElement(0, 5, 1, 1)
-        drawTilePoolElement(70, 5, 2, 2)
-        drawTilePoolElement(150, 5, 3, 3)
-        drawTilePoolElement(200, 5, 4, 4)
-        drawTilePoolElement(260, 5, 5, 5)
-        drawTilePoolElement(330, 5, 6, 6)
-        drawTilePoolElement(0, 80, 7, 7)
-        drawTilePoolElement(100, 80, 8, 8)
-        drawTilePoolElement(220, 80, 9, 9) */
-
     tileUIElements.forEach(elem => {
-        drawTilePoolElement(elem.computedLeft, elem.computedTop, elem.tileType, elem.tileType)
+        let tileNumber = api.getnAvailableTiles(my_puzzle_ptr, elem.tileType)
+        drawTilePoolElement(elem.computedLeft, elem.computedTop,
+            elem.tileType, tileNumber)
     })
 }
 
@@ -227,6 +265,7 @@ function clearGridInSqUnits(xSqU = 0, ySqU = 0, size = puzzleLength) {
     ctx.clearRect(xSqU * squareSide - 1, ySqU * squareSide - 1,
         size * squareSide + 2, size * squareSide + 2)
 }
+
 function drawGridInSqUnits(xSqU = 0, ySqU = 0, size = puzzleLength) {
     ctx.strokeStyle = "grey"
     for (let i = 0; i <= size; ++i) {
@@ -246,9 +285,46 @@ function drawGridInSqUnits(xSqU = 0, ySqU = 0, size = puzzleLength) {
     }
 }
 
+function getJournalEntries() {
+    let entries = []
+    let puzzleJournalFirstEntry_ptr = api.getPuzJournalFirstEntryPtr()
+    let puzzleJournalSize = api.getPuzJournalSize()
+
+    for (let i = 0; i < puzzleJournalSize; ++i) {
+        let tileType = Module.getValue(puzzleJournalFirstEntry_ptr
+            + i * puzJournalEntryStruct_size
+            + 0 * puzJournalEntryStruct_size / 3, 'i32')
+        let xPos = Module.getValue(puzzleJournalFirstEntry_ptr
+            + i * puzJournalEntryStruct_size
+            + 1 * puzJournalEntryStruct_size / 3, 'i32')
+        let yPos = Module.getValue(puzzleJournalFirstEntry_ptr
+            + i * puzJournalEntryStruct_size
+            + 2 * puzJournalEntryStruct_size / 3, 'i32')
+        entries.push({ tileType, xPos, yPos })
+    }
+
+    return entries
+}
+
+function drawPuzzleFromJournal() {
+    getJournalEntries().forEach(elem => {
+        placeTileGrid(...Object.values(elem))
+    })
+}
+
 function getTileSelectAtPos(x, y) {
     return tileSelectLocations.find(i =>
         x >= i.xStart && x <= i.xEnd && y >= i.yStart && y <= i.yEnd)
+}
+
+/*         console.log(x, y)
+        console.log(entry.xPos * squareSide, (entry.xPos + entry.tileType) * squareSide)
+        console.log(entry.yPos * squareSide, (entry.yPos + entry.tileType) * squareSide) */
+function getTilePlacedAtPos(x, y) {
+    return getJournalEntries().find(entry =>
+        x >= entry.xPos * squareSide && x <= (entry.xPos + entry.tileType) * squareSide &&
+        y >= entry.yPos * squareSide && y <= (entry.yPos + entry.tileType) * squareSide
+    )
 }
 
 function handlePointerLeave(event) {
@@ -259,8 +335,9 @@ function handlePointerLeave(event) {
     drawTilePool()
 
     if (selectionTileOnGrid) {
-        clearGridInSqUnits(selectedTile.xSqU, selectedTile.ySqU, selectedTile.type)
-        drawGridInSqUnits(selectedTile.xSqU, selectedTile.ySqU, selectedTile.type)
+        clearGridInSqUnits()
+        drawGridInSqUnits()
+        drawPuzzleFromJournal()
         selectionTileOnGrid = false
     }
 }
@@ -275,8 +352,9 @@ function handlePointerMove(event) {
 
     if (selectionActive) {
         if (selectionTileOnGrid) {
-            clearGridInSqUnits(selectedTile.xSqU, selectedTile.ySqU, selectedTile.type)
-            drawGridInSqUnits(selectedTile.xSqU, selectedTile.ySqU, selectedTile.type)
+            clearGridInSqUnits()
+            drawGridInSqUnits()
+            drawPuzzleFromJournal()
         }
 
         let tileType = selectedTile.type
@@ -286,10 +364,12 @@ function handlePointerMove(event) {
 
         if (xRenderPos >= tilePoolStart) {
             drawTile(tileType, xRenderPos, yRenderPos, "green")
+            selectionTileOnGrid = false
         } else {
             selectionTileOnGrid = true
             selectedTile.xSqU = xSqu
             selectedTile.ySqU = ySqu
+            drawPuzzleFromJournal()
             placeTileGrid(tileType, xSqu, ySqu)
         }
     } else {
@@ -304,20 +384,46 @@ function handlePointerDown(event) {
     const rect = canvas.getBoundingClientRect()
     const x = event.pageX - rect.left - scrollX
     const y = event.pageY - rect.top - scrollY
-    const foundTile = getTileSelectAtPos(x, y)
-    if (foundTile) {
+    const foundSelectTile = getTileSelectAtPos(x, y)
+    //TODO: fix
+    const foundPlacedTile = getTilePlacedAtPos(x, y)
+    if (foundSelectTile) {
+        let foundTileAvailNumber = api.getnAvailableTiles(my_puzzle_ptr, foundSelectTile.type)
+        if (foundTileAvailNumber > 0) {
+            selectionActive = true
+            selectedTile = foundSelectTile
+        }
+    }
+
+    if (foundPlacedTile) {
         selectionActive = true
-        selectedTile = foundTile
+        selectedTile = {
+            xStart: foundPlacedTile.xPos * squareSide,
+            xEnd: (foundPlacedTile.xPos + foundPlacedTile.tileType) * squareSide,
+            yStart: foundPlacedTile.yPos * squareSide,
+            yEnd: (foundPlacedTile.yPos + foundPlacedTile.tileType) * squareSide,
+            type: foundPlacedTile.tileType,
+            xShift: - foundPlacedTile.tileType * squareSide / 2,
+            yShift: - foundPlacedTile.tileType * squareSide / 2,
+            xSqU: foundPlacedTile.xPos,
+            ySqU: foundPlacedTile.yPos,
+        }
+        let returnCode = api.removeTile(my_puzzle_ptr, selectedTile.type, selectedTile.xSqU, selectedTile.ySqU)
     }
 }
 
 function handlePointerUp(event) {
-    selectionActive = false
-    selectedTile = false
     if (selectionTileOnGrid) {
-        //TODO: place tile in puzzle
+        let returnCode = api.placeTile(my_puzzle_ptr, selectedTile.type, selectedTile.xSqU, selectedTile.ySqU)
+        if (returnCode != 0) {
+            clearGridInSqUnits()
+            drawGridInSqUnits()
+            drawPuzzleFromJournal()
+        }
         selectionTileOnGrid = false
     }
+    selectionActive = false
+    selectedTile = false
 }
 
 function initCanvas() {
@@ -352,6 +458,8 @@ const puzzleTypeInput = document.getElementById("puzzleTypeInput")
 
 puzzleTypeInput.addEventListener("change", () => {
     ctx.clearRect(0, 0, canvasWidth, canvasHeight)
+    api.freePuzzle(my_puzzle_ptr)
+    Module.setValue(my_puzzle_ptr, 0, 'i32')
     initPuzzle(puzzleTypeInput.valueAsNumber).then(() => {
         drawGridInSqUnits()
         drawTilePool()
@@ -360,6 +468,7 @@ puzzleTypeInput.addEventListener("change", () => {
 })
 
 initCanvas()
+await initializeModel()
 
 await initPuzzle(puzzleTypeInput.valueAsNumber)
 drawGridInSqUnits()

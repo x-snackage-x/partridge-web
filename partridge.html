@@ -10,25 +10,27 @@
 <body>
     <div class="content">
         <div id="app">
+            <canvas id="canvas" width="1100" height="600" class="appElements">
+                Failed to Load Puzzle
+            </canvas>
             <div id="controls" class="appElements">
-                <input type="number" min="1" max="16" value="9" id="puzzleTypeInput">
+                <input type="number" min="1" max="16" value="8" id="puzzleTypeInput">
                 <div class="controlSubFunctions">
                     <button class="button-pretty">Test Current Configuration</button>
-                    <svg width="100px" height="50px">
-                        <circle id="sign" r="20" cx="50" cy="27.5" />
+                    <svg width="100px" height="40px" class="light">
+                        <circle id="sign" r="20" cx="50" cy="20" />
                     </svg>
-                </div>
-                <div class="controlSubFunctions">
-                    <button class="button-pretty">Find a Solution</button>
-                    <div id="visualizer">
-                        <label>Visualizer:</label>
-                        <input type="checkbox">
+                    <div class="controlSubFunctions">
+                        <button class="button-pretty">Find a Solution</button>
+                        <div id="visualizer">
+                            <label for="visualizerToggle">Visualizer:
+                                <input type="checkbox" id="visualizerToggle" class="input">
+                                <span class="custom-checkbox"></span>
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
-            <canvas id="canvas" width="1200" height="600" class="appElements">
-                Failed to Load Puzzle
-            </canvas>
         </div>
     </div>
     <script type="module" src="puzzle.js"></script>

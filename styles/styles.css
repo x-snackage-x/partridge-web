@@ -27,13 +27,11 @@ body {
   display: flex;
 }
 
-.scroller {
-  scrollbar-color: grey#202020;
-}
-
 canvas {
-  border: 1px solid rgb(255, 255, 255);
-  margin: 0 auto;
+  /*   border: 1px solid whitesmoke; */
+  border-radius: 0.2em;
+  padding: 5px;
+  margin: 2 auto;
   image-rendering: pixelated;
 }
 
@@ -43,8 +41,8 @@ canvas {
 
 #controls {
   padding: 0.25em;
-  min-width: 115px;
-  max-width: 115px;
+  min-width: 130px;
+  max-width: 130px;
   flex-grow: 1;
   display: flex;
   flex-direction: column;
@@ -52,13 +50,17 @@ canvas {
   justify-content: center;
 }
 
+.light {
+  margin: 10px;
+}
+
 #controls>* {
   margin: 5px;
-  text-align: right;
+  text-align: center;
 }
 
 .controlSubFunctions {
-  border: 1px solid hsl(0, 0%, 100%);
+  border: 1px solid whitesmoke;
   border-radius: 0.5em;
   padding: 0.4em;
   display: flex;
@@ -77,13 +79,3 @@ canvas {
   color: whitesmoke;
   font-size: 90%;
 }
-
-
-/* For testing */
-/* #app {
-  background: mediumpurple;
-}
-
-#controls {
-  border: 1px solid indigo;
-} */
