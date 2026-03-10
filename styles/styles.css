@@ -13,11 +13,11 @@ body {
 }
 
 button {
-  border-radius: 0.2em;
+  border-radius: 0.3em;
 }
 
-input {
-  border-radius: 0.2em;
+input[type=number] {
+  border-radius: 0.6em;
 }
 
 .content {
