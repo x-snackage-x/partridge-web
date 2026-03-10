@@ -16,12 +16,16 @@
             <div id="controls" class="appElements">
                 <input type="number" min="1" max="16" value="8" id="puzzleTypeInput">
                 <div class="controlSubFunctions">
-                    <button class="button-pretty">Test Current Configuration</button>
-                    <svg width="100px" height="40px" class="light">
-                        <circle id="sign" r="20" cx="50" cy="20" />
+                    <button id="isSolvableButton" class="button-pretty">Test Current Configuration</button>
+                    <svg width="100px" height="40px" class="light" id="myLight">
+                        <circle id="signBackground" r="20" cx="50" cy="20" />
+                        <circle id="sign" r="17" cx="50" cy="20" fill="grey" stroke="rgb(27, 27, 27)"
+                            stroke-width="0" />
+                        <circle id="spinner" r="14" cx="50" cy="20" fill="none" stroke="whitesmoke" stroke-width="0"
+                            stroke-dasharray="62" stroke-linecap="round" stroke-dashoffset="0" />
                     </svg>
                     <div class="controlSubFunctions">
-                        <button class="button-pretty">Find a Solution</button>
+                        <button id="findSolutionButton" class="button-pretty">Find a Solution</button>
                         <div id="visualizer">
                             <label for="visualizerToggle">Visualizer:
                                 <input type="checkbox" id="visualizerToggle" class="input">

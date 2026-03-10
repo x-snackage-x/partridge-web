@@ -31,7 +31,7 @@ canvas {
   /*   border: 1px solid whitesmoke; */
   border-radius: 0.2em;
   padding: 5px;
-  margin: 2 auto;
+  margin: auto;
   image-rendering: pixelated;
 }
 
@@ -69,7 +69,7 @@ canvas {
   justify-content: center;
 }
 
-#sign {
+#signBackground {
   fill: grey;
   stroke: rgb(27, 27, 27);
   stroke-width: 1
@@ -78,4 +78,15 @@ canvas {
 #visualizer label {
   color: whitesmoke;
   font-size: 90%;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+#spinner {
+  transform-origin: center;
+  animation: spin 1s linear infinite;
 }

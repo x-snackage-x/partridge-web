@@ -7,6 +7,10 @@ import {
 
 import createModule from './solWASM/solWASM'
 
+import SolverWorker from './isSolvable.worker.js?worker';
+
+let worker = null
+
 /** @type {HTMLCanvasElement} */
 let canvas = null
 let ctx = null
@@ -17,13 +21,15 @@ let puzzleType
 let puzzleLength
 let squareSide
 let tilePoolStart
-let tileUIElements
+let tileUIElements = []
 let tileSelectLocations = []
 
+let tilePoolChanged = false
 let selectionActive = false
 let selectionTileOnGrid = false
 let selectedTile = {}
 
+let journalRemoveThresholdIndex
 
 let puzzleStruct_size = 0
 let puzJournalEntryStruct_size = 0
@@ -59,6 +65,17 @@ async function initializeModel() {
     }
 }
 
+function getTileColor(index) {
+    if (index == 1) {
+        return 'hsl(0, 0%, 85%)'
+    }
+
+    // Distribute hues evenly for 'n' tiles
+    const hue = (index * (360 / puzzleType)) % 360;
+    // Use consistent Saturation and Lightness for cohesion
+    return `hsl(${hue}, 70%, 60%)`;
+}
+
 async function calculateTilePoolLayout(puzzleType) {
     if (puzzleType == 1) {
         return [{
@@ -80,7 +97,7 @@ async function calculateTilePoolLayout(puzzleType) {
 
     const config = Yoga.Config.create();
     config.setUseWebDefaults(false)
-
+    console.log(canvasWidth - canvasHeight)
     const tilePool = Yoga.Node.create(config)
     tilePool.setWidth(canvasWidth - canvasHeight)
     tilePool.setHeight(canvasHeight)
@@ -124,10 +141,13 @@ async function calculateTilePoolLayout(puzzleType) {
 }
 
 async function initPuzzle(puzzleTypeIn) {
+    journalRemoveThresholdIndex = 0
     puzzleType = puzzleTypeIn
     puzzleLength = puzzleType * (puzzleType + 1) / 2
     squareSide = Math.floor(canvasHeight * 5 / puzzleLength) / 5
     tilePoolStart = canvasHeight + 2.5
+
+    startNewSolverWorker()
 
     // scale down the puzzle for special case of 1 and 2
     if (puzzleType == 1) {
@@ -139,6 +159,7 @@ async function initPuzzle(puzzleTypeIn) {
         tilePoolStart = squareSide * puzzleLength + 10.5
     }
 
+    changeTrafficLight(-1)
     tileUIElements = await calculateTilePoolLayout(puzzleType)
 
     Module.setValue(my_puzzle_ptr, puzzleType, 'i32')
@@ -167,13 +188,20 @@ function translatePixelPosToGridPos(x, y, tileType) {
     return { xSqu, ySqu }
 }
 
-function drawTile(size, x, y, color = "black") {
+function drawTile(size, x, y, color) {
     ctx.fillStyle = color
     ctx.fillRect(x, y, size * squareSide, size * squareSide)
 }
 
+function drawTileOutline(size, x, y, lineWidth, color = "red") {
+    ctx.strokeStyle = color
+    ctx.lineWidth = lineWidth
+    ctx.strokeRect(x, y, size * squareSide, size * squareSide)
+    ctx.lineWidth = 1.0
+}
+
 function placeTileGrid(size, xSqU, ySqU) {
-    drawTile(size, xSqU * squareSide, ySqU * squareSide)
+    drawTile(size, xSqU * squareSide, ySqU * squareSide, getTileColor(size))
 }
 
 function clearTilePool() {
@@ -227,12 +255,12 @@ function drawTilePoolElement(x, y, size, number = 1) {
         heightCorrection = fontSize - size * squareSide
     }
 
-    drawTile(size, x, y + heightCorrection / 2)
+    drawTile(size, x, y + heightCorrection / 2, getTileColor(size))
     let thisTileSelectLoc = {
         xStart: x,
-        xEnd: x + size * squareSide,
-        yStart: y + heightCorrection / 2,
-        yEnd: y + heightCorrection / 2 + size * squareSide,
+        xEnd: Math.ceil(x + size * squareSide),
+        yStart: Math.ceil(y + heightCorrection / 2),
+        yEnd: Math.ceil(y + heightCorrection / 2 + size * squareSide),
         type: size,
         xShift: - size * squareSide / 2,
         yShift: - size * squareSide / 2,
@@ -263,7 +291,7 @@ function drawTilePool() {
 
 function clearGridInSqUnits(xSqU = 0, ySqU = 0, size = puzzleLength) {
     ctx.clearRect(xSqU * squareSide - 1, ySqU * squareSide - 1,
-        size * squareSide + 2, size * squareSide + 2)
+        size * squareSide + 3, size * squareSide + 3)
 }
 
 function drawGridInSqUnits(xSqU = 0, ySqU = 0, size = puzzleLength) {
@@ -314,17 +342,49 @@ function drawPuzzleFromJournal() {
 
 function getTileSelectAtPos(x, y) {
     return tileSelectLocations.find(i =>
-        x >= i.xStart && x <= i.xEnd && y >= i.yStart && y <= i.yEnd)
+        x >= i.xStart && x <= i.xEnd && y >= i.yStart && y <= i.yEnd
+    )
 }
 
-/*         console.log(x, y)
-        console.log(entry.xPos * squareSide, (entry.xPos + entry.tileType) * squareSide)
-        console.log(entry.yPos * squareSide, (entry.yPos + entry.tileType) * squareSide) */
 function getTilePlacedAtPos(x, y) {
-    return getJournalEntries().find(entry =>
-        x >= entry.xPos * squareSide && x <= (entry.xPos + entry.tileType) * squareSide &&
-        y >= entry.yPos * squareSide && y <= (entry.yPos + entry.tileType) * squareSide
-    )
+    return getJournalEntries().reduce((acc, entry, index) => {
+        if (x >= entry.xPos * squareSide && x <= (entry.xPos + entry.tileType) * squareSide &&
+            y >= entry.yPos * squareSide && y <= (entry.yPos + entry.tileType) * squareSide) {
+            acc.entry = entry
+            acc.index = index
+        }
+        return acc
+    }, { entry: undefined, index: -1 })
+}
+
+function changeTrafficLight(changeTo) {
+    switch (changeTo) {
+        case -1:
+        default:
+            document.getElementById("sign")
+                .setAttribute("fill", "grey")
+            document.getElementById("sign").setAttribute("stroke-width", "0")
+            document.getElementById("spinner").setAttribute("stroke-width", "0")
+            break;
+        case -2:
+            document.getElementById("sign")
+                .setAttribute("fill", "grey")
+            document.getElementById("sign").setAttribute("stroke-width", "0")
+            document.getElementById("spinner").setAttribute("stroke-width", "3")
+            break;
+        case 0:
+            document.getElementById("sign")
+                .setAttribute("fill", "rgb(211, 20, 20)")
+            document.getElementById("sign").setAttribute("stroke-width", "1")
+            document.getElementById("spinner").setAttribute("stroke-width", "0")
+            break;
+        case 1:
+            document.getElementById("sign")
+                .setAttribute("fill", "rgb(41, 161, 61)")
+            document.getElementById("sign").setAttribute("stroke-width", "1")
+            document.getElementById("spinner").setAttribute("stroke-width", "0")
+            break;
+    }
 }
 
 function handlePointerLeave(event) {
@@ -343,12 +403,14 @@ function handlePointerLeave(event) {
 }
 
 function handlePointerMove(event) {
-    clearTilePool()
     const rect = canvas.getBoundingClientRect()
     const x = event.pageX - rect.left - scrollX
     const y = event.pageY - rect.top - scrollY
 
-    drawTilePool()
+    if (tilePoolChanged) {
+        clearTilePool()
+        drawTilePool()
+    }
 
     if (selectionActive) {
         if (selectionTileOnGrid) {
@@ -363,19 +425,28 @@ function handlePointerMove(event) {
         let { xSqu, ySqu } = translatePixelPosToGridPos(x, y, tileType)
 
         if (xRenderPos >= tilePoolStart) {
-            drawTile(tileType, xRenderPos, yRenderPos, "green")
+            drawTile(tileType, xRenderPos, yRenderPos, getTileColor(tileType))
             selectionTileOnGrid = false
+            tilePoolChanged = true
         } else {
             selectionTileOnGrid = true
             selectedTile.xSqU = xSqu
             selectedTile.ySqU = ySqu
             drawPuzzleFromJournal()
             placeTileGrid(tileType, xSqu, ySqu)
+
+            if (!api.placementResolvable(my_puzzle_ptr, tileType, xSqu, ySqu)) {
+                drawTileOutline(tileType, xSqu * squareSide, ySqu * squareSide, 3.0)
+            }
         }
     } else {
         const foundTile = getTileSelectAtPos(x, y)
         if (foundTile) {
-            drawTile(foundTile.type, foundTile.xStart, foundTile.yStart, "red")
+            let tileFree = api.getnAvailableTiles(my_puzzle_ptr, foundTile.type)
+            if (tileFree > 0) {
+                drawTileOutline(foundTile.type, foundTile.xStart, foundTile.yStart, 3.0, "hsl(123, 27%, 43%)")
+            }
+            tilePoolChanged = true
         }
     }
 }
@@ -385,17 +456,18 @@ function handlePointerDown(event) {
     const x = event.pageX - rect.left - scrollX
     const y = event.pageY - rect.top - scrollY
     const foundSelectTile = getTileSelectAtPos(x, y)
-    //TODO: fix
-    const foundPlacedTile = getTilePlacedAtPos(x, y)
+    const { entry: foundPlacedTile, index: placementIndex } = getTilePlacedAtPos(x, y)
+
     if (foundSelectTile) {
         let foundTileAvailNumber = api.getnAvailableTiles(my_puzzle_ptr, foundSelectTile.type)
         if (foundTileAvailNumber > 0) {
             selectionActive = true
             selectedTile = foundSelectTile
+            changeTrafficLight(-1)
         }
     }
 
-    if (foundPlacedTile) {
+    if (foundPlacedTile && placementIndex >= journalRemoveThresholdIndex) {
         selectionActive = true
         selectedTile = {
             xStart: foundPlacedTile.xPos * squareSide,
@@ -408,7 +480,8 @@ function handlePointerDown(event) {
             xSqU: foundPlacedTile.xPos,
             ySqU: foundPlacedTile.yPos,
         }
-        let returnCode = api.removeTile(my_puzzle_ptr, selectedTile.type, selectedTile.xSqU, selectedTile.ySqU)
+        api.removeTile(my_puzzle_ptr, selectedTile.type, selectedTile.xSqU, selectedTile.ySqU)
+        changeTrafficLight(-1)
     }
 }
 
@@ -430,6 +503,9 @@ function initCanvas() {
     canvas = document.getElementById("canvas")
     ctx = canvas.getContext("2d")
 
+    canvasHeight = Number(canvas.getAttribute("Height"))
+    canvasWidth = Number(canvas.getAttribute("Width"))
+
     // Get the DPR and size of the canvas
     const dpr = window.devicePixelRatio;
     const rect = canvas.getBoundingClientRect();
@@ -437,9 +513,6 @@ function initCanvas() {
     // Set the "actual" size of the canvas
     canvas.height = rect.height * dpr;
     canvas.width = rect.width * dpr;
-
-    canvasHeight = Number(canvas.getAttribute("Height"))
-    canvasWidth = Number(canvas.getAttribute("Width"))
 
     // Scale the context to ensure correct drawing operations
     ctx.scale(dpr, dpr);
@@ -455,7 +528,6 @@ function initCanvas() {
 }
 
 const puzzleTypeInput = document.getElementById("puzzleTypeInput")
-
 puzzleTypeInput.addEventListener("change", () => {
     ctx.clearRect(0, 0, canvasWidth, canvasHeight)
     api.freePuzzle(my_puzzle_ptr)
@@ -466,6 +538,48 @@ puzzleTypeInput.addEventListener("change", () => {
     })
     tileSelectLocations = []
 })
+
+function determineIsSolvable(event) {
+    changeTrafficLight(-2)
+    journalRemoveThresholdIndex = api.getPuzJournalSize()
+    let dataObj = {
+        puzzleStruct_size: puzzleStruct_size,
+        puzzleType: puzzleType,
+        journalEntries: getJournalEntries(),
+    }
+    isSolvableButton.disabled = true
+
+    // Trigger the heavy task in the background
+    worker.postMessage({ type: 'START_SEARCH', message: dataObj });
+}
+
+function startNewSolverWorker() {
+    if (worker) {
+        worker.terminate()
+    }
+
+    worker = new SolverWorker()
+
+    // Listen for messages from the worker
+    worker.onmessage = (event) => {
+        const { type, message } = event.data;
+        if (type === 'READY') {
+            // Enable button once WASM is loaded
+            isSolvableButton.disabled = false
+        } else if (type === 'RESULT') {
+            journalRemoveThresholdIndex = 0
+
+            isSolvableButton.disabled = false
+            changeTrafficLight(message)
+        }
+    };
+}
+
+const isSolvableButton = document.getElementById("isSolvableButton")
+isSolvableButton.disabled = true
+isSolvableButton.addEventListener("click", determineIsSolvable)
+
+const findSolutionButton = document.getElementById("findSolutionButton")
 
 initCanvas()
 await initializeModel()
