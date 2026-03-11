@@ -5,19 +5,25 @@
 }
 
 html {
-  scrollbar-color: grey#202020;
+  scrollbar-color: grey hsl(0, 0%, 13%);
 }
 
 body {
-  background-color: #202020;
+  background-color: hsl(0, 0%, 13%);
 }
 
 button {
   border-radius: 0.3em;
 }
 
+button:hover:enabled {
+  background-color: #808080;
+  text-decoration: none;
+  transition-duration: 0.1s;
+}
+
 input[type=number] {
-  border-radius: 0.6em;
+  border-radius: 0.5em;
 }
 
 .content {
@@ -78,7 +84,7 @@ canvas {
 
 #signBackground {
   fill: grey;
-  stroke: rgb(27, 27, 27);
+  stroke: hsl(0, 0%, 13%);
   stroke-width: 1
 }
 

@@ -380,14 +380,14 @@ function changeTrafficLight(changeTo) {
             break;
         case 0:
             document.getElementById("sign")
-                .setAttribute("fill", "rgb(211, 20, 20)")
+                .setAttribute("fill", "hsl(0, 83%, 45%)")
             document.getElementById("sign").setAttribute("stroke-width", "1")
             document.getElementById("spinner").setAttribute("stroke-width", "0")
             trafficLightState = 0
             break;
         case 1:
             document.getElementById("sign")
-                .setAttribute("fill", "rgb(41, 161, 61)")
+                .setAttribute("fill", "hsl(130, 59%, 40%)")
             document.getElementById("sign").setAttribute("stroke-width", "1")
             document.getElementById("spinner").setAttribute("stroke-width", "0")
             trafficLightState = 1
@@ -502,6 +502,10 @@ function handlePointerUp(event) {
             drawPuzzleFromJournal()
         }
         selectionTileOnGrid = false
+
+        if (api.isPuzzleSolved(my_puzzle_ptr)) {
+            changeTrafficLight(1)
+        }
     }
     selectionActive = false
     selectedTile = false
