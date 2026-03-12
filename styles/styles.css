@@ -14,10 +14,11 @@ body {
 
 button {
   border-radius: 0.3em;
+  background-color: hsl(0, 1%, 83%);
 }
 
 button:hover:enabled {
-  background-color: #808080;
+  background-color: hsl(0, 0%, 100%);
   text-decoration: none;
   transition-duration: 0.1s;
 }

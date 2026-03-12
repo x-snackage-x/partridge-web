@@ -10,6 +10,19 @@ import createModule from './solWASM/solWASM'
 import SolverWorker from './isSolvable.worker.js?worker';
 
 let worker = null
+
+const EVENT_SIZE = 4
+const CAPACITY = 65536
+const WRITE = 0
+const READ = 1
+const DATA = 2
+const sharedRingBuffer = new SharedArrayBuffer(
+    Int32Array.BYTES_PER_ELEMENT * (2 + EVENT_SIZE * CAPACITY))
+const viewSharedRingBuffer = new Int32Array(sharedRingBuffer)
+let bgBodyColor
+
+let actionLock = false
+
 let trafficLightState = -1
 
 /** @type {HTMLCanvasElement} */
@@ -150,6 +163,13 @@ async function initPuzzle(puzzleTypeIn) {
 
     startNewSolverWorker()
 
+    if (visualizerToggle.checked) {
+        actionLock = false
+        //TODO: remove if unnecessary
+        Atomics.store(viewSharedRingBuffer, WRITE, -1)
+        visualizerToggle.checked = false
+    }
+
     // scale down the puzzle for special case of 1 and 2
     if (puzzleType == 1) {
         squareSide *= 0.82
@@ -195,15 +215,21 @@ function drawTile(size, x, y, color) {
     ctx.fillRect(x, y, size * squareSide, size * squareSide)
 }
 
-function drawTileOutline(size, x, y, lineWidth, color = "red") {
+function drawTileOutline(size, x, y, lineWidth, color = "hsl(0, 83%, 45%)") {
     ctx.strokeStyle = color
     ctx.lineWidth = lineWidth
     ctx.strokeRect(x, y, size * squareSide, size * squareSide)
     ctx.lineWidth = 1.0
 }
 
-function placeTileGrid(size, xSqU, ySqU) {
-    drawTile(size, xSqU * squareSide, ySqU * squareSide, getTileColor(size))
+function placeTileGrid(size, xSqU, ySqU, color = getTileColor(size)) {
+    drawTile(size, xSqU * squareSide, ySqU * squareSide, color)
+}
+
+function placeTileOutlineGrid(size, xSqU, ySqU,
+    lineWidth, color = "hsl(0, 83%, 45%)") {
+    drawTileOutline(size, xSqU * squareSide, ySqU * squareSide,
+        lineWidth, color)
 }
 
 function clearTilePool() {
@@ -291,12 +317,12 @@ function drawTilePool() {
     })
 }
 
-function clearGridInSqUnits(xSqU = 0, ySqU = 0, size = puzzleLength) {
+function clearGridInSqUnits(size = puzzleLength, xSqU = 0, ySqU = 0) {
     ctx.clearRect(xSqU * squareSide - 1, ySqU * squareSide - 1,
         size * squareSide + 3, size * squareSide + 3)
 }
 
-function drawGridInSqUnits(xSqU = 0, ySqU = 0, size = puzzleLength) {
+function drawGridInSqUnits(size = puzzleLength, xSqU = 0, ySqU = 0) {
     ctx.strokeStyle = "grey"
     for (let i = 0; i <= size; ++i) {
         ctx.beginPath()
@@ -337,8 +363,12 @@ function getJournalEntries() {
 }
 
 function drawPuzzleFromJournal() {
-    getJournalEntries().forEach(elem => {
-        placeTileGrid(...Object.values(elem))
+    getJournalEntries().forEach((elem, index) => {
+        if (index < journalRemoveThresholdIndex) {
+            placeTileGrid(...Object.values(elem), "black")
+        } else {
+            placeTileGrid(...Object.values(elem))
+        }
     })
 }
 
@@ -471,7 +501,6 @@ function handlePointerDown(event) {
         if (foundTileAvailNumber > 0) {
             selectionActive = true
             selectedTile = foundSelectTile
-            changeTrafficLight(-1)
         }
     }
 
@@ -493,13 +522,15 @@ function handlePointerDown(event) {
     }
 }
 
-function handlePointerUp(event) {
+function handlePointerUp() {
     if (selectionTileOnGrid) {
         let returnCode = api.placeTile(my_puzzle_ptr, selectedTile.type, selectedTile.xSqU, selectedTile.ySqU)
         if (returnCode != 0) {
             clearGridInSqUnits()
             drawGridInSqUnits()
             drawPuzzleFromJournal()
+        } else {
+            changeTrafficLight(-1)
         }
         selectionTileOnGrid = false
 
@@ -512,6 +543,9 @@ function handlePointerUp(event) {
 }
 
 function initCanvas() {
+    let bodyStyle = window.getComputedStyle(document.body, null);
+    bgBodyColor = bodyStyle.backgroundColor;
+
     canvas = document.getElementById("canvas")
     ctx = canvas.getContext("2d")
 
@@ -539,19 +573,48 @@ function initCanvas() {
     canvas.addEventListener("pointerup", handlePointerUp)
 }
 
-const puzzleTypeInput = document.getElementById("puzzleTypeInput")
-puzzleTypeInput.addEventListener("change", () => {
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight)
-    api.freePuzzle(my_puzzle_ptr)
-    Module.setValue(my_puzzle_ptr, 0, 'i32')
-    initPuzzle(puzzleTypeInput.valueAsNumber).then(() => {
-        drawGridInSqUnits()
-        drawTilePool()
-    })
-    tileSelectLocations = []
-})
+function popEvents() {
+    let count = 0
 
-function determineIsSolvable(withResults) {
+    let read = Atomics.load(viewSharedRingBuffer, READ)
+    const write = Atomics.load(viewSharedRingBuffer, WRITE)
+
+    while (read < write && count < 5000 && actionLock) {
+        const slot = DATA + (read % CAPACITY) * EVENT_SIZE
+
+        const type = viewSharedRingBuffer[slot + 0]
+        const size = viewSharedRingBuffer[slot + 1]
+        const xSqU = viewSharedRingBuffer[slot + 2]
+        const ySqU = viewSharedRingBuffer[slot + 3]
+
+        if (type === 1) {
+            ctx.fillStyle = getTileColor(size)
+            ctx.fillRect(Math.round(xSqU * squareSide), Math.round(ySqU * squareSide),
+                Math.round(size * squareSide), Math.round(size * squareSide))
+            ctx.strokeStyle = "grey"
+            ctx.strokeRect(Math.round(xSqU * squareSide) + 0.5, Math.round(ySqU * squareSide) + 0.5,
+                Math.round(size * squareSide) - 1, Math.round(size * squareSide) - 1)
+        } else {
+            ctx.fillStyle = bgBodyColor
+            ctx.fillRect(Math.round(xSqU * squareSide) - 0.5, Math.round(ySqU * squareSide) - 0.5,
+                Math.round(size * squareSide) + 0.5, Math.round(size * squareSide) + 0.5)
+        }
+
+        read++
+        count++
+    }
+
+    placeTileOutlineGrid(puzzleLength, 0, 0, 2, "grey")
+
+    Atomics.store(viewSharedRingBuffer, READ, read)
+}
+
+function visualizerAnimationLoop() {
+    popEvents()
+    requestAnimationFrame(visualizerAnimationLoop)
+}
+
+function triggerSolver(withResults) {
     changeTrafficLight(-2)
     journalRemoveThresholdIndex = api.getPuzJournalSize()
     let dataObj = {
@@ -559,12 +622,34 @@ function determineIsSolvable(withResults) {
         puzzleType: puzzleType,
         journalEntries: getJournalEntries(),
         withResults: withResults,
+        withVisualizer: visualizerToggle.checked,
     }
+
+    drawPuzzleFromJournal()
     isSolvableButton.disabled = true
     findSolutionButton.disabled = true
+    visualizerToggle.disabled = true
 
-    // Trigger the heavy task in the background
-    worker.postMessage({ type: 'START_SEARCH', message: dataObj });
+    worker.postMessage({ type: 'START_SEARCH', message: dataObj })
+
+    if (visualizerToggle.checked) {
+        actionLock = true
+        clearGridInSqUnits()
+        drawPuzzleFromJournal()
+        visualizerAnimationLoop()
+    }
+}
+
+function setUpSharedRingBuffer() {
+    let consts = {
+        EVENT_SIZE,
+        CAPACITY,
+        WRITE,
+        READ,
+        DATA,
+    }
+    worker.postMessage({ type: 'TRANSF_CONSTS', message: consts })
+    worker.postMessage({ type: 'INIT_SRB', message: sharedRingBuffer })
 }
 
 function startNewSolverWorker() {
@@ -581,13 +666,27 @@ function startNewSolverWorker() {
             // Enable button once WASM is loaded
             isSolvableButton.disabled = false
             findSolutionButton.disabled = false
+            visualizerToggle.disabled = false
+
+            setUpSharedRingBuffer()
+        } else if (type === 'SRB_READY') {
+            console.log("Shared Array Buffer ready")
         } else if (type === 'RESULT') {
-            const { result, entries } = message
+            actionLock = false
+            //TODO: remove if unnecessary
+            Atomics.store(viewSharedRingBuffer, WRITE, -1)
+            const { result, entries, solveTime } = message
             journalRemoveThresholdIndex = 0
 
             isSolvableButton.disabled = false
             findSolutionButton.disabled = false
+            visualizerToggle.disabled = false
+
+            console.log(`Solve Time: ${solveTime / 1000.0}s`)
             changeTrafficLight(result)
+            clearGridInSqUnits()
+            drawGridInSqUnits()
+            drawPuzzleFromJournal()
             entries.forEach(elem => {
                 placeTileGrid(...Object.values(elem))
             })
@@ -595,16 +694,31 @@ function startNewSolverWorker() {
     };
 }
 
+const puzzleTypeInput = document.getElementById("puzzleTypeInput")
+puzzleTypeInput.addEventListener("change", () => {
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight)
+    api.freePuzzle(my_puzzle_ptr)
+    Module.setValue(my_puzzle_ptr, 0, 'i32')
+    initPuzzle(puzzleTypeInput.valueAsNumber).then(() => {
+        clearGridInSqUnits()
+        drawGridInSqUnits()
+        drawTilePool()
+    })
+    tileSelectLocations = []
+})
+
 const isSolvableButton = document.getElementById("isSolvableButton")
 isSolvableButton.disabled = true
 isSolvableButton.addEventListener("click", () => {
-    determineIsSolvable(false)
+    triggerSolver(false)
 })
 
+const visualizerToggle = document.getElementById("visualizerToggle")
+visualizerToggle.disabled = true
 const findSolutionButton = document.getElementById("findSolutionButton")
 findSolutionButton.disabled = true
 findSolutionButton.addEventListener("click", () => {
-    determineIsSolvable(true)
+    triggerSolver(true)
 })
 
 initCanvas()

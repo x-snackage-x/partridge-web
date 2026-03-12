@@ -6,6 +6,11 @@ A web-based front end for my [partridge-solver](https://github.com/x-snackage-x/
 
 todo
 
+> [!NOTE]
+> When deploying make sure to add the correct Cross-Origin policies to the host header:
+>            `Cross-Origin-Opener-Policy`: `same-origin`,
+>            `Cross-Origin-Embedder-Policy`: `require-corp`
+
 ## Dependencies
 
 The layout of the Tile Select area of the Puzzle-Canvas was implemented with the help of of the [Yoga Layout Engine](https://www.yogalayout.dev/).
