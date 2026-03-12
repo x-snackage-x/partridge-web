@@ -22,6 +22,7 @@ const viewSharedRingBuffer = new Int32Array(sharedRingBuffer)
 let bgBodyColor
 
 let actionLock = false
+let reqFrameId = undefined
 
 let trafficLightState = -1
 
@@ -165,8 +166,20 @@ async function initPuzzle(puzzleTypeIn) {
 
     if (visualizerToggle.checked) {
         actionLock = false
-        //TODO: remove if unnecessary
-        Atomics.store(viewSharedRingBuffer, WRITE, -1)
+        //FIXME: Seems like animation frames are left on the stack 
+        // and are played when the next animation is kicked of
+        stopVisAnimLoop()
+        console.log(
+            "1 write:", Atomics.load(viewSharedRingBuffer, WRITE),
+            "1 read:", Atomics.load(viewSharedRingBuffer, READ)
+        )
+        Atomics.store(viewSharedRingBuffer, WRITE, 0)
+        Atomics.store(viewSharedRingBuffer, READ, 0)
+        console.log(
+            "2 write:", Atomics.load(viewSharedRingBuffer, WRITE),
+            "2 read:", Atomics.load(viewSharedRingBuffer, READ)
+        )
+
         visualizerToggle.checked = false
     }
 
@@ -490,6 +503,10 @@ function handlePointerMove(event) {
 }
 
 function handlePointerDown(event) {
+    if (actionLock) {
+        return
+    }
+
     const rect = canvas.getBoundingClientRect()
     const x = event.pageX - rect.left - scrollX
     const y = event.pageY - rect.top - scrollY
@@ -610,12 +627,30 @@ function popEvents() {
 }
 
 function visualizerAnimationLoop() {
+    reqFrameId = undefined
     popEvents()
-    requestAnimationFrame(visualizerAnimationLoop)
+    startVisAnimLoop()
+}
+
+function startVisAnimLoop() {
+    if (!reqFrameId) {
+        reqFrameId = requestAnimationFrame(visualizerAnimationLoop)
+    }
+}
+
+function stopVisAnimLoop() {
+    if (reqFrameId) {
+        cancelAnimationFrame(reqFrameId);
+        reqFrameId = undefined;
+    }
 }
 
 function triggerSolver(withResults) {
     changeTrafficLight(-2)
+    if (!withResults) {
+        visualizerToggle.checked = false
+    }
+
     journalRemoveThresholdIndex = api.getPuzJournalSize()
     let dataObj = {
         puzzleStruct_size: puzzleStruct_size,
@@ -673,14 +708,21 @@ function startNewSolverWorker() {
             console.log("Shared Array Buffer ready")
         } else if (type === 'RESULT') {
             actionLock = false
-            //TODO: remove if unnecessary
-            Atomics.store(viewSharedRingBuffer, WRITE, -1)
+            stopVisAnimLoop()
+            Atomics.store(viewSharedRingBuffer, WRITE, 0)
+            Atomics.store(viewSharedRingBuffer, READ, 0)
+
             const { result, entries, solveTime } = message
             journalRemoveThresholdIndex = 0
 
             isSolvableButton.disabled = false
             findSolutionButton.disabled = false
             visualizerToggle.disabled = false
+
+            if (selectionTileOnGrid) {
+                selectionActive = false
+                selectionTileOnGrid = false
+            }
 
             console.log(`Solve Time: ${solveTime / 1000.0}s`)
             changeTrafficLight(result)
