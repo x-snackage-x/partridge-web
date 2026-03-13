@@ -5,7 +5,7 @@ export default {
             "Cross-Origin-Embedder-Policy": "require-corp"
         },
         open: '/partridge.html',
-        base: '/partridge-web/',
+        base: '',
     },
     build: {
         rollupOptions: {
