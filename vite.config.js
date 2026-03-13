@@ -1,4 +1,5 @@
 export default {
+    base: '/partridge-web/',
     server: {
         headers: {
             "Cross-Origin-Opener-Policy": "same-origin",
@@ -8,6 +9,9 @@ export default {
     },
     build: {
         rollupOptions: {
+            external: [
+                'coi-serviceworker.js'
+            ],
             input: {
                 app: './partridge.html',
             },
