@@ -116,6 +116,5 @@ self.onmessage = async (event) => {
         DATA = message.DATA
     } else if (type === 'INIT_SRB') {
         viewSharedRingBuffer = new Int32Array(message)
-        self.postMessage({ type: 'SRB_READY' })
     }
 }

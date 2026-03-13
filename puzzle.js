@@ -231,18 +231,12 @@ function drawTile(size, x, y, color) {
 function drawTileOutline(size, x, y, lineWidth, color = "hsl(0, 83%, 45%)") {
     ctx.strokeStyle = color
     ctx.lineWidth = lineWidth
-    ctx.strokeRect(x, y, size * squareSide, size * squareSide)
+    ctx.strokeRect(x + 0.5, y + 0.5, size * squareSide - 0.5, size * squareSide - 0.5)
     ctx.lineWidth = 1.0
 }
 
 function placeTileGrid(size, xSqU, ySqU, color = getTileColor(size)) {
     drawTile(size, xSqU * squareSide, ySqU * squareSide, color)
-}
-
-function placeTileOutlineGrid(size, xSqU, ySqU,
-    lineWidth, color = "hsl(0, 83%, 45%)") {
-    drawTileOutline(size, xSqU * squareSide, ySqU * squareSide,
-        lineWidth, color)
 }
 
 function clearTilePool() {
@@ -574,6 +568,9 @@ function initCanvas() {
     canvas.height = rect.height * dpr;
     canvas.width = rect.width * dpr;
 
+    // Shift origin by a few pixels to not clash with edge
+    ctx.transform(1, 0, 0, 1, 2, 2);
+
     // Scale the context to ensure correct drawing operations
     ctx.scale(dpr, dpr);
 
@@ -621,7 +618,7 @@ function popEvents() {
         count++
     }
 
-    placeTileOutlineGrid(puzzleLength, 0, 0, 2, "grey")
+    drawTileOutline(puzzleLength, 0, 0, 2, "grey")
 
     Atomics.store(viewSharedRingBuffer, READ, read)
 }
@@ -704,8 +701,6 @@ function startNewSolverWorker() {
             visualizerToggle.disabled = false
 
             setUpSharedRingBuffer()
-        } else if (type === 'SRB_READY') {
-            console.log("Shared Array Buffer ready")
         } else if (type === 'RESULT') {
             actionLock = false
             stopVisAnimLoop()
@@ -761,6 +756,46 @@ const findSolutionButton = document.getElementById("findSolutionButton")
 findSolutionButton.disabled = true
 findSolutionButton.addEventListener("click", () => {
     triggerSolver(true)
+})
+
+const cancelSolButton = document.getElementById("cancelSolve")
+cancelSolButton.addEventListener("mouseover", (event) => {
+    if (isSolvableButton.disabled) {
+        cancelSolButton.style.opacity = 1
+    }
+})
+cancelSolButton.addEventListener("mouseout", (event) => {
+    cancelSolButton.style.opacity = 0
+})
+
+cancelSolButton.addEventListener("click", () => {
+    startNewSolverWorker()
+
+    if (visualizerToggle.checked) {
+        actionLock = false
+        //FIXME: Seems like animation frames are left on the stack 
+        // and are played when the next animation is kicked of
+        stopVisAnimLoop()
+        console.log(
+            "1 write:", Atomics.load(viewSharedRingBuffer, WRITE),
+            "1 read:", Atomics.load(viewSharedRingBuffer, READ)
+        )
+        Atomics.store(viewSharedRingBuffer, WRITE, 0)
+        Atomics.store(viewSharedRingBuffer, READ, 0)
+        console.log(
+            "2 write:", Atomics.load(viewSharedRingBuffer, WRITE),
+            "2 read:", Atomics.load(viewSharedRingBuffer, READ)
+        )
+
+        visualizerToggle.checked = false
+    }
+
+    journalRemoveThresholdIndex = 0
+    trafficLightState = -5
+    if (isSolvableButton.disabled) { changeTrafficLight(-1) }
+    clearGridInSqUnits()
+    drawGridInSqUnits()
+    drawPuzzleFromJournal()
 })
 
 initCanvas()
