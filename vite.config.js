@@ -9,9 +9,6 @@ export default {
     },
     build: {
         rollupOptions: {
-            external: [
-                'coi-serviceworker.js'
-            ],
             input: {
                 app: './partridge.html',
             },
