@@ -2,32 +2,44 @@
 
 A web-based front end for my [partridge-solver](https://github.com/x-snackage-x/partridge-solver) in C and compiled to WASM.
 
-## Usage
+Visit https://x-snackage-x.github.io/partridge-web/ to try it out. 
 
-todo
+## Running locally/Deployment
 
-> [!NOTE]
+To build and run locally, first install necessary `npm` packages and run the Vite dev server:
+
+```shell
+wd$: npm install
+    [...]
+wd$: npx vite
+```
+
+To deploy run the build command:
+
+```shell
+wd$: npm run build
+```
+
+local preview:
+
+```shell
+wd$: npm run preview
+```
+
+and deploy the generated `distr` directory. 
+
+> [!NOTE]  
 > When deploying make sure to add the correct Cross-Origin policies to the host header:
 >            `Cross-Origin-Opener-Policy`: `same-origin`,
 >            `Cross-Origin-Embedder-Policy`: `require-corp`
 
 ## Dependencies
 
+Vite for bundling. 
+
 The layout of the Tile Select area of the Puzzle-Canvas was implemented with the help of of the [Yoga Layout Engine](https://www.yogalayout.dev/).
 
-## ToDo
-
-1. ~~**Be able to pickup placed tiles** -> Requires Integration with puzzle journal?~~ Done
-1. ~~**Don't draw over placed tiles** -> Requires Integration with puzzle journal?~~ Done
-1. ~~implement expected draw interface to C-Code~~ Done
-1. ~~**Integrate with puzzle journal/puzzle logic/solver/visualizer** -> Emscripten research~~ Done
-1. Don't render on every mouse event -> Refactor to render loop
-1. ~~Figure out tile color system~~ Done
-1. ~~Spinner for ongoing processes / Result light~~ Done
-1. Text Content
-    - Figure out/research how to do the vertical expanding pane
-    - Multiple language support
-    - InfoBoxes
+Serviceworker JavaScript for simulating Cross-origin isolation for the GitHub Pages deployment graciously provided by [Guido Zuidhof](https://github.com/gzuidhof/coi-serviceworker).
 
 ## Useful links project 
 
@@ -39,3 +51,14 @@ Sources that were useful while implementing the project.
     - Fabric.js: https://fabricjs.com/
 - SVG Spinner: https://www.fffuel.co/svg-spinner/ 
 
+## ToDo
+
+1. Fix
+    - Double Click Rendering
+    - Non-Empty frame buffer on vis restart
+    - Solution tp pick up 1x1 tiles when they are very small
+1. Don't render on every mouse event -> Refactor to render loop
+1. Text Content
+    - Figure out/research how to do the vertical expanding pane
+    - Multiple language support
+    - InfoBoxes

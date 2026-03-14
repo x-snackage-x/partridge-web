@@ -168,7 +168,6 @@ async function initPuzzle(puzzleTypeIn) {
         squareSide -= canvasHeight / (200 * puzzleLength)
         i += 1
     }
-    console.log(puzzleType, squareSide)
     tilePoolStart = canvasHeight + 2.5
 
     startNewSolverWorker()
@@ -331,17 +330,10 @@ function drawTilePool() {
 }
 
 function clearGridInSqUnits(size = puzzleLength, xSqU = 0, ySqU = 0) {
-    if (size == 1) {
-        ctx.clearRect(xSqU * squareSide - 1 - xCanvasTransform,
-            ySqU - 1 - yCanvasTransform,
-            size * squareSide + 3 + xCanvasTransform,
-            canvasHeight + 3 + yCanvasTransform)
-        return
-    }
     ctx.clearRect(xSqU * squareSide - 1 - xCanvasTransform,
         ySqU * squareSide - 1 - yCanvasTransform,
         size * squareSide + 3 + xCanvasTransform,
-        size * squareSide + 3 + yCanvasTransform)
+        canvasHeight + 3 + yCanvasTransform)
 }
 
 function drawGridInSqUnits(size = puzzleLength, xSqU = 0, ySqU = 0) {
