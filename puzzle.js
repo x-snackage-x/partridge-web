@@ -21,6 +21,7 @@ const sharedRingBuffer = new SharedArrayBuffer(
 const viewSharedRingBuffer = new Int32Array(sharedRingBuffer)
 let bgBodyColor
 
+let solverRunning = false
 let actionLock = false
 let reqFrameId = undefined
 
@@ -650,6 +651,7 @@ function stopVisAnimLoop() {
 }
 
 function triggerSolver(withResults) {
+    solverRunning = true
     changeTrafficLight(-2)
     if (!withResults) {
         visualizerToggle.checked = false
@@ -709,6 +711,7 @@ function startNewSolverWorker() {
 
             setUpSharedRingBuffer()
         } else if (type === 'RESULT') {
+            solverRunning = false
             actionLock = false
             stopVisAnimLoop()
             Atomics.store(viewSharedRingBuffer, WRITE, 0)
@@ -777,6 +780,10 @@ cancelSolButton.addEventListener("mouseout", (event) => {
 })
 
 cancelSolButton.addEventListener("click", () => {
+    if (!solverRunning) {
+        return
+    }
+
     startNewSolverWorker()
 
     if (visualizerToggle.checked) {
