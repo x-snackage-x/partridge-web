@@ -525,6 +525,7 @@ function handlePointerDown(event) {
 
     if (foundPlacedTile && placementIndex >= journalRemoveThresholdIndex) {
         selectionActive = true
+        selectionTileOnGrid = true
         selectedTile = {
             xStart: foundPlacedTile.xPos * squareSide,
             xEnd: (foundPlacedTile.xPos + foundPlacedTile.tileType) * squareSide,
@@ -536,12 +537,14 @@ function handlePointerDown(event) {
             xSqU: foundPlacedTile.xPos,
             ySqU: foundPlacedTile.yPos,
         }
+        console.log("Mouse down select")
         api.removeTile(my_puzzle_ptr, selectedTile.type, selectedTile.xSqU, selectedTile.ySqU)
         changeTrafficLight(-1)
     }
 }
 
 function handlePointerUp() {
+    console.log("Mouse up select")
     if (selectionTileOnGrid) {
         let returnCode = api.placeTile(my_puzzle_ptr, selectedTile.type, selectedTile.xSqU, selectedTile.ySqU)
         if (returnCode != 0) {

@@ -29,9 +29,10 @@ wd$: npm run preview
 and deploy the generated `distr` directory. 
 
 > [!NOTE]  
-> When deploying make sure to add the correct Cross-Origin policies to the host header:
->            `Cross-Origin-Opener-Policy`: `same-origin`,
->            `Cross-Origin-Embedder-Policy`: `require-corp`
+> When deploying make sure to add the correct Cross-Origin policies to the host header:  
+>
+>       `Cross-Origin-Opener-Policy`: `same-origin`,  
+>       `Cross-Origin-Embedder-Policy`: `require-corp`
 
 ## Dependencies
 
@@ -54,11 +55,13 @@ Sources that were useful while implementing the project.
 ## ToDo
 
 1. Fix
-    - Double Click Rendering
     - Non-Empty frame buffer on vis restart
-    - Solution tp pick up 1x1 tiles when they are very small
-1. Don't render on every mouse event -> Refactor to render loop
+    - Solution to pick up 1x1 tiles when they are very small
 1. Text Content
     - Figure out/research how to do the vertical expanding pane
     - Multiple language support
     - InfoBoxes
+1. Mobile optimizations
+    - Select with pressure maybe?
+    - Vertical aligned canvas
+1. Don't render on every mouse event -> Refactor to render loop
