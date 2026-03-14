@@ -32,6 +32,9 @@ let ctx = null
 let canvasHeight = 0
 let canvasWidth = 0
 
+const xCanvasTransform = 2
+const yCanvasTransform = 2
+
 let puzzleType
 let puzzleLength
 let squareSide
@@ -159,7 +162,13 @@ async function initPuzzle(puzzleTypeIn) {
     journalRemoveThresholdIndex = 0
     puzzleType = puzzleTypeIn
     puzzleLength = puzzleType * (puzzleType + 1) / 2
-    squareSide = Math.floor(canvasHeight * 5 / puzzleLength) / 5
+    squareSide = Math.ceil(canvasHeight * 200 / puzzleLength) / 200
+    let i = 0
+    while (squareSide * puzzleLength > canvasHeight - 2) {
+        squareSide -= canvasHeight / (200 * puzzleLength)
+        i += 1
+    }
+    console.log(puzzleType, squareSide)
     tilePoolStart = canvasHeight + 2.5
 
     startNewSolverWorker()
@@ -183,14 +192,10 @@ async function initPuzzle(puzzleTypeIn) {
         visualizerToggle.checked = false
     }
 
-    // scale down the puzzle for special case of 1 and 2
+    // scale down the puzzle for special case of 1
     if (puzzleType == 1) {
-        squareSide *= 0.82
+        squareSide *= 0.90
         tilePoolStart = squareSide + 10.5
-    } else if (puzzleType == 2) {
-        squareSide *= 0.97
-        puzzleLength = puzzleType * (puzzleType + 1) / 2
-        tilePoolStart = squareSide * puzzleLength + 10.5
     }
 
     trafficLightState = -5
@@ -240,9 +245,10 @@ function placeTileGrid(size, xSqU, ySqU, color = getTileColor(size)) {
 }
 
 function clearTilePool() {
-    ctx.clearRect(tilePoolStart - 1, 0
-        , canvasWidth - tilePoolStart + 2
-        , canvasHeight + 1)
+    ctx.clearRect(tilePoolStart - 1 - xCanvasTransform,
+        - yCanvasTransform
+        , canvasWidth - tilePoolStart + 2 + xCanvasTransform
+        , canvasHeight + 1 + yCanvasTransform)
 }
 
 function calculateTilePoolElement(size) {
@@ -325,8 +331,17 @@ function drawTilePool() {
 }
 
 function clearGridInSqUnits(size = puzzleLength, xSqU = 0, ySqU = 0) {
-    ctx.clearRect(xSqU * squareSide - 1, ySqU * squareSide - 1,
-        size * squareSide + 3, size * squareSide + 3)
+    if (size == 1) {
+        ctx.clearRect(xSqU * squareSide - 1 - xCanvasTransform,
+            ySqU - 1 - yCanvasTransform,
+            size * squareSide + 3 + xCanvasTransform,
+            canvasHeight + 3 + yCanvasTransform)
+        return
+    }
+    ctx.clearRect(xSqU * squareSide - 1 - xCanvasTransform,
+        ySqU * squareSide - 1 - yCanvasTransform,
+        size * squareSide + 3 + xCanvasTransform,
+        size * squareSide + 3 + yCanvasTransform)
 }
 
 function drawGridInSqUnits(size = puzzleLength, xSqU = 0, ySqU = 0) {
@@ -569,7 +584,7 @@ function initCanvas() {
     canvas.width = rect.width * dpr;
 
     // Shift origin by a few pixels to not clash with edge
-    ctx.transform(1, 0, 0, 1, 2, 2);
+    ctx.transform(1, 0, 0, 1, xCanvasTransform, yCanvasTransform);
 
     // Scale the context to ensure correct drawing operations
     ctx.scale(dpr, dpr);
@@ -733,7 +748,8 @@ function startNewSolverWorker() {
 
 const puzzleTypeInput = document.getElementById("puzzleTypeInput")
 puzzleTypeInput.addEventListener("change", () => {
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight)
+    ctx.clearRect(0 - xCanvasTransform, 0 - yCanvasTransform,
+        canvasWidth, canvasHeight)
     api.freePuzzle(my_puzzle_ptr)
     Module.setValue(my_puzzle_ptr, 0, 'i32')
     initPuzzle(puzzleTypeInput.valueAsNumber).then(() => {
