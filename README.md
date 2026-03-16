@@ -4,6 +4,8 @@ A web-based front end for my [partridge-solver](https://github.com/x-snackage-x/
 
 Visit https://x-snackage-x.github.io/partridge-web/ to try it out. 
 
+https://github.com/user-attachments/assets/b53683a2-a0c6-4858-b411-3158c4592cd3
+
 ## Running locally/Deployment
 
 To build and run locally, first install necessary `npm` packages and run the Vite dev server:
