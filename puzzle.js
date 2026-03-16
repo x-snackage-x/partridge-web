@@ -12,12 +12,14 @@ import SolverWorker from './isSolvable.worker.js?worker';
 let worker = null
 
 const EVENT_SIZE = 4
-const CAPACITY = 65536
-const WRITE = 0
-const READ = 1
-const DATA = 2
+const CAPACITY = 2 ** 16
+const MASK = CAPACITY - 1
+const RUN_ID = 0
+const WRITE = 1
+const READ = 2
+const DATA = 3
 const sharedRingBuffer = new SharedArrayBuffer(
-    Int32Array.BYTES_PER_ELEMENT * (2 + EVENT_SIZE * CAPACITY))
+    Int32Array.BYTES_PER_ELEMENT * (3 + EVENT_SIZE * CAPACITY))
 const viewSharedRingBuffer = new Int32Array(sharedRingBuffer)
 let bgBodyColor
 
@@ -171,8 +173,9 @@ async function initPuzzle(puzzleTypeIn) {
     }
     tilePoolStart = canvasHeight + 2.5
 
-    startNewSolverWorker()
-
+    if (worker == null) {
+        startNewSolverWorker()
+    }
     // scale down the puzzle for special case of 1
     if (puzzleType == 1) {
         squareSide *= 0.90
@@ -581,10 +584,18 @@ function popEvents() {
     let count = 0
 
     let read = Atomics.load(viewSharedRingBuffer, READ)
-    const write = Atomics.load(viewSharedRingBuffer, WRITE)
+    let write = Atomics.load(viewSharedRingBuffer, WRITE)
+
+    if (read - write > CAPACITY) {
+        read = write - CAPACITY
+    }
 
     while (read < write && count < 5000 && actionLock) {
-        const slot = DATA + (read % CAPACITY) * EVENT_SIZE
+        if ((count & 255) === 0) {
+            write = Atomics.load(viewSharedRingBuffer, WRITE)
+        }
+
+        const slot = DATA + (read & MASK) * EVENT_SIZE
 
         const type = viewSharedRingBuffer[slot + 0]
         const size = viewSharedRingBuffer[slot + 1]
@@ -660,7 +671,7 @@ function triggerSolver(withResults) {
         actionLock = true
         clearGridInSqUnits()
         drawPuzzleFromJournal()
-        visualizerAnimationLoop()
+        startVisAnimLoop()
     }
 }
 
@@ -668,6 +679,7 @@ function setUpSharedRingBuffer() {
     let consts = {
         EVENT_SIZE,
         CAPACITY,
+        RUN_ID,
         WRITE,
         READ,
         DATA,
@@ -694,11 +706,12 @@ function startNewSolverWorker() {
 
             setUpSharedRingBuffer()
         } else if (type === 'RESULT') {
+            stopVisAnimLoop()
             solverRunning = false
             actionLock = false
-            stopVisAnimLoop()
-            Atomics.store(viewSharedRingBuffer, WRITE, 0)
-            Atomics.store(viewSharedRingBuffer, READ, 0)
+
+            let write = Atomics.load(viewSharedRingBuffer, WRITE)
+            Atomics.store(viewSharedRingBuffer, READ, write)
 
             const { result, entries, solveTime } = message
             journalRemoveThresholdIndex = 0
@@ -771,24 +784,17 @@ cancelSolButton.addEventListener("click", () => {
     startNewSolverWorker()
 
     if (visualizerToggle.checked) {
-        actionLock = false
-        //FIXME: Seems like animation frames are left on the stack 
-        // and are played when the next animation is kicked of
         stopVisAnimLoop()
-        console.log(
-            "1 write:", Atomics.load(viewSharedRingBuffer, WRITE),
-            "1 read:", Atomics.load(viewSharedRingBuffer, READ)
-        )
-        Atomics.store(viewSharedRingBuffer, WRITE, 0)
-        Atomics.store(viewSharedRingBuffer, READ, 0)
-        console.log(
-            "2 write:", Atomics.load(viewSharedRingBuffer, WRITE),
-            "2 read:", Atomics.load(viewSharedRingBuffer, READ)
-        )
+        actionLock = false
+
+        Atomics.add(viewSharedRingBuffer, RUN_ID, 1)
+        let write = Atomics.load(viewSharedRingBuffer, WRITE)
+        Atomics.store(viewSharedRingBuffer, READ, write)
 
         visualizerToggle.checked = false
     }
 
+    puzzleTypeInput.disabled = false
     journalRemoveThresholdIndex = 0
     trafficLightState = -5
     if (isSolvableButton.disabled) { changeTrafficLight(-1) }

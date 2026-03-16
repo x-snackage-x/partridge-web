@@ -5,19 +5,21 @@ let viewSharedRingBuffer
 
 let EVENT_SIZE
 let CAPACITY
+let MASK
+let RUN_ID
 let WRITE
 let READ
 let DATA
 
-function pushEvent(type, size, xSqU, ySqU) {
-    const write = Atomics.load(viewSharedRingBuffer, WRITE)
-    const read = Atomics.load(viewSharedRingBuffer, READ)
+let current_RUN_ID
 
-    if (write - read >= CAPACITY) {
+function pushEvent(type, size, xSqU, ySqU) {
+    if (Atomics.load(viewSharedRingBuffer, RUN_ID) != current_RUN_ID) {
         return
     }
 
-    const slot = DATA + (write % CAPACITY) * EVENT_SIZE
+    const write = Atomics.load(viewSharedRingBuffer, WRITE)
+    const slot = DATA + (write & MASK) * EVENT_SIZE
 
     viewSharedRingBuffer[slot + 0] = type
     viewSharedRingBuffer[slot + 1] = size
@@ -56,6 +58,8 @@ createModule().then((instance) => {
 self.onmessage = async (event) => {
     const { type, message } = event.data;
     if (type === 'START_SEARCH') {
+
+        current_RUN_ID = Atomics.load(viewSharedRingBuffer, RUN_ID)
 
         if (message.withVisualizer) {
             Module._visualizer_on()
@@ -111,9 +115,11 @@ self.onmessage = async (event) => {
     } else if (type === 'TRANSF_CONSTS') {
         EVENT_SIZE = message.EVENT_SIZE
         CAPACITY = message.CAPACITY
+        RUN_ID = message.RUN_ID
         WRITE = message.WRITE
         READ = message.READ
         DATA = message.DATA
+        MASK = CAPACITY - 1
     } else if (type === 'INIT_SRB') {
         viewSharedRingBuffer = new Int32Array(message)
     }
