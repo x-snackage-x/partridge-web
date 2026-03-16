@@ -173,25 +173,6 @@ async function initPuzzle(puzzleTypeIn) {
 
     startNewSolverWorker()
 
-    if (visualizerToggle.checked) {
-        actionLock = false
-        //FIXME: Seems like animation frames are left on the stack 
-        // and are played when the next animation is kicked of
-        stopVisAnimLoop()
-        console.log(
-            "1 write:", Atomics.load(viewSharedRingBuffer, WRITE),
-            "1 read:", Atomics.load(viewSharedRingBuffer, READ)
-        )
-        Atomics.store(viewSharedRingBuffer, WRITE, 0)
-        Atomics.store(viewSharedRingBuffer, READ, 0)
-        console.log(
-            "2 write:", Atomics.load(viewSharedRingBuffer, WRITE),
-            "2 read:", Atomics.load(viewSharedRingBuffer, READ)
-        )
-
-        visualizerToggle.checked = false
-    }
-
     // scale down the puzzle for special case of 1
     if (puzzleType == 1) {
         squareSide *= 0.90
@@ -537,14 +518,12 @@ function handlePointerDown(event) {
             xSqU: foundPlacedTile.xPos,
             ySqU: foundPlacedTile.yPos,
         }
-        console.log("Mouse down select")
         api.removeTile(my_puzzle_ptr, selectedTile.type, selectedTile.xSqU, selectedTile.ySqU)
         changeTrafficLight(-1)
     }
 }
 
 function handlePointerUp() {
-    console.log("Mouse up select")
     if (selectionTileOnGrid) {
         let returnCode = api.placeTile(my_puzzle_ptr, selectedTile.type, selectedTile.xSqU, selectedTile.ySqU)
         if (returnCode != 0) {
@@ -670,6 +649,7 @@ function triggerSolver(withResults) {
     }
 
     drawPuzzleFromJournal()
+    puzzleTypeInput.disabled = true
     isSolvableButton.disabled = true
     findSolutionButton.disabled = true
     visualizerToggle.disabled = true
@@ -723,6 +703,7 @@ function startNewSolverWorker() {
             const { result, entries, solveTime } = message
             journalRemoveThresholdIndex = 0
 
+            puzzleTypeInput.disabled = false
             isSolvableButton.disabled = false
             findSolutionButton.disabled = false
             visualizerToggle.disabled = false
@@ -815,6 +796,20 @@ cancelSolButton.addEventListener("click", () => {
     drawGridInSqUnits()
     drawPuzzleFromJournal()
 })
+
+let collButtons = document.getElementsByClassName("collapsible")
+for (let i = 0; i < collButtons.length; i++) {
+    collButtons[i].addEventListener("click", function () {
+        this.classList.toggle("active")
+        var content = this.previousElementSibling
+        if (content.style.maxWidth) {
+            content.style.maxWidth = null
+        } else {
+            content.style.height = canvasHeight * 0.95 + "px"
+            content.style.maxWidth = canvasHeight * 0.75 + "px"
+        }
+    })
+}
 
 initCanvas()
 await initializeModel()

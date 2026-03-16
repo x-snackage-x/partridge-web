@@ -57,10 +57,13 @@ Sources that were useful while implementing the project.
 1. Fix
     - Non-Empty frame buffer on vis restart
     - Solution to pick up 1x1 tiles when they are very small
+1. Design:
+    - Nicer checkbox?
+    - Nicer Buttons?
 1. Text Content
-    - Figure out/research how to do the vertical expanding pane
     - Multiple language support
     - InfoBoxes
+    - Add text
 1. Mobile optimizations
     - Select with pressure maybe?
     - Vertical aligned canvas
