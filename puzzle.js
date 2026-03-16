@@ -548,31 +548,34 @@ function handlePointerUp() {
 
 function initCanvas() {
     let bodyStyle = window.getComputedStyle(document.body, null);
-    bgBodyColor = bodyStyle.backgroundColor;
+    bgBodyColor = bodyStyle.backgroundColor
 
     canvas = document.getElementById("canvas")
     ctx = canvas.getContext("2d")
 
     // Get the DPR and size of the canvas
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1
+    const rect = canvas.getBoundingClientRect()
+
+    canvasHeight = Math.round(rect.height)
+    canvasWidth = Math.round(rect.width)
 
     // Set the "actual" size of the canvas
-    canvas.height = rect.height * dpr;
-    canvas.width = rect.width * dpr;
-
-    // Shift origin by a few pixels to not clash with edge
-    ctx.transform(1, 0, 0, 1, xCanvasTransform, yCanvasTransform);
-
-    // Scale the context to ensure correct drawing operations
-    ctx.scale(dpr, dpr);
-
-    canvasHeight = rect.height
-    canvasWidth = rect.width
+    canvas.height = canvasHeight * dpr
+    canvas.width = canvasWidth * dpr
 
     // Set the "drawn" size of the canvas
-    canvas.style.height = `${rect.height}px`;
-    canvas.style.width = `${rect.width}px`;
+    canvas.style.height = `${canvasHeight}px`
+    canvas.style.width = `${canvasWidth}px`
+
+    // Shift origin by a few pixels to not clash with edge and
+    // Scale the context to ensure correct drawing operations
+    ctx.setTransform(
+        dpr, 0,
+        0, dpr,
+        xCanvasTransform * dpr,
+        yCanvasTransform * dpr
+    )
 
     canvas.addEventListener("pointerleave", handlePointerLeave)
     canvas.addEventListener("pointermove", handlePointerMove)
@@ -604,9 +607,9 @@ function popEvents() {
         const xSqU = viewSharedRingBuffer[slot + 2]
         const ySqU = viewSharedRingBuffer[slot + 3]
 
-        let x = (xSqU * squareSide + 0.5) | 0
-        let y = (ySqU * squareSide + 0.5) | 0
-        let sideLength = (size * squareSide + 0.5) | 0
+        let x = (xSqU * squareSide) | 0
+        let y = (ySqU * squareSide) | 0
+        let sideLength = (size * squareSide) | 0
 
         if (type === 1) {
             ctx.fillStyle = getTileColor(size)

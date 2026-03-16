@@ -55,7 +55,6 @@ Sources that were useful while implementing the project.
 ## ToDo
 
 1. Fix
-    - Test on Laptop screen -> borders in solver
     - Handle inputs over 16 -> Easter Egg
     - Solution to pick up 1x1 tiles when they are very small
 1. Design:
