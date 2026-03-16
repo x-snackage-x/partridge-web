@@ -815,10 +815,12 @@ for (let i = 0; i < collButtons.length; i++) {
         if (content.style.maxWidth) {
             content.style.maxWidth = null
         } else {
-            content.style.height = canvasHeight * 0.95 + "px"
+            content.style.height = canvasHeight * 1.1 + "px"
             content.style.maxWidth = canvasHeight * 0.75 + "px"
         }
     })
+    collButtons[i].previousElementSibling.style.height =
+        canvasHeight * 1.1 + "px"
 }
 
 initCanvas()

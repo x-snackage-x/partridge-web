@@ -9,6 +9,14 @@ h1 {
   font-style: italic;
 }
 
+a:link {
+  color: hsl(214, 70%, 60%);
+}
+
+a:visited {
+  color: hsl(41, 24%, 59%);
+}
+
 #title {
   min-width: 12%;
   width: 12%;
@@ -75,10 +83,13 @@ input[type=number] {
   transform: rotate(90deg)
 }
 
-#text {
-  overflow: hidden;
+.text {
+  margin: 0 5px;
+  overflow: auto;
   max-width: 0;
   transition: max-width 0.2s ease-out;
+  text-align: justify;
+  text-justify: auto;
 }
 
 #app {

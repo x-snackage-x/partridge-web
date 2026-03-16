@@ -63,7 +63,6 @@ Sources that were useful while implementing the project.
 1. Text Content
     - Multiple language support
     - InfoBoxes
-    - Add text
 1. Mobile optimizations
     - Select with pressure maybe?
     - Vertical aligned canvas
