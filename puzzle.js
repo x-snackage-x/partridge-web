@@ -590,6 +590,8 @@ function popEvents() {
         read = write - CAPACITY
     }
 
+    ctx.beginPath()
+
     while (read < write && count < 5000 && actionLock) {
         if ((count & 255) === 0) {
             write = Atomics.load(viewSharedRingBuffer, WRITE)
@@ -602,17 +604,16 @@ function popEvents() {
         const xSqU = viewSharedRingBuffer[slot + 2]
         const ySqU = viewSharedRingBuffer[slot + 3]
 
+        let x = (xSqU * squareSide + 0.5) | 0
+        let y = (ySqU * squareSide + 0.5) | 0
+        let sideLength = (size * squareSide + 0.5) | 0
+
         if (type === 1) {
             ctx.fillStyle = getTileColor(size)
-            ctx.fillRect(Math.round(xSqU * squareSide), Math.round(ySqU * squareSide),
-                Math.round(size * squareSide), Math.round(size * squareSide))
-            ctx.strokeStyle = "grey"
-            ctx.strokeRect(Math.round(xSqU * squareSide) + 0.5, Math.round(ySqU * squareSide) + 0.5,
-                Math.round(size * squareSide) - 1, Math.round(size * squareSide) - 1)
+            ctx.fillRect(x, y, sideLength, sideLength)
         } else {
             ctx.fillStyle = bgBodyColor
-            ctx.fillRect(Math.round(xSqU * squareSide) - 0.5, Math.round(ySqU * squareSide) - 0.5,
-                Math.round(size * squareSide) + 0.5, Math.round(size * squareSide) + 0.5)
+            ctx.fillRect(x - 0.5, y - 0.5, sideLength + 1, sideLength + 1)
         }
 
         read++
