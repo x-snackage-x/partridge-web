@@ -55,10 +55,6 @@ input[type=number] {
   border-radius: 0.5em;
 }
 
-* {
-  outline: 1px solid red;
-}
-
 body {
   background-color: hsl(0, 0%, 13%);
   margin: 0;
@@ -66,9 +62,8 @@ body {
   display: flex;
   align-items: center;
 
-  min-height: 100vh;
-
-  overflow-y: visible;
+  min-height: 100dvh;
+  overflow-y: auto;
 }
 
 @media (min-width: 1050px) {
@@ -92,7 +87,6 @@ body {
 @media (min-width: 1050px) {
   .content {
     max-height: 100%;
-    overflow-y: auto;
   }
 }
 
@@ -168,7 +162,7 @@ body {
 
 .text-inner {
   overflow: auto;
-  max-height: 80vh;
+  max-height: 80dvh;
   /* match desktop constraint */
   scroll-behavior: smooth;
 }
@@ -180,7 +174,7 @@ body {
     min-width: 400px;
     max-width: 600px;
     /* adjust as needed */
-    max-height: 80vh;
+    max-height: 80dvh;
     padding-left: 10px;
     padding-right: 10px;
   }
@@ -194,6 +188,10 @@ body {
     /* big enough to fit content */
     padding-left: 10px;
     padding-right: 10px;
+  }
+
+  .text-inner {
+    max-height: 1000px;
   }
 }
 
