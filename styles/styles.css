@@ -206,6 +206,11 @@ body {
   }
 }
 
+.no-scroll {
+  overflow: hidden;
+  touch-action: none;
+}
+
 canvas {
   /*   border: 1px solid whitesmoke; */
   border-radius: 0.2em;

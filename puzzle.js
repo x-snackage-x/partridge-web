@@ -452,6 +452,7 @@ function handlePointerMove(event) {
     }
 
     if (selectionActive) {
+        console.log("selecting")
         if (selectionTileOnGrid) {
             clearGridInSqUnits()
             drawGridInSqUnits()
@@ -584,7 +585,9 @@ function initCanvas() {
             clearTimeout(pressTimer)
             handlePointerLeave()
         })
+
     canvas.addEventListener("pointermove", handlePointerMove)
+
     canvas.addEventListener("pointerdown", (event) => {
         if (event.pointerType !== "touch") {
             handlePointerDown(event)
@@ -592,12 +595,17 @@ function initCanvas() {
         }
 
         pressTimer = setTimeout(() => {
+            document.body.classList.add("no-scroll")
+            canvas.setPointerCapture(event.pointerId)
             handlePointerDown(event)
-        }, 300); // adjust delay
+        }, 150); // adjust delay
     })
-    canvas.addEventListener("pointerup", () => {
-        clearTimeout(pressTimer)
+
+    canvas.addEventListener("pointerup", (event) => {
         handlePointerUp()
+        clearTimeout(pressTimer)
+        canvas.releasePointerCapture(event.pointerId)
+        document.body.classList.remove("no-scroll")
     })
 }
 
