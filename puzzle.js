@@ -452,7 +452,6 @@ function handlePointerMove(event) {
     }
 
     if (selectionActive) {
-        console.log("selecting")
         if (selectionTileOnGrid) {
             clearGridInSqUnits()
             drawGridInSqUnits()
@@ -598,7 +597,7 @@ function initCanvas() {
             document.body.classList.add("no-scroll")
             canvas.setPointerCapture(event.pointerId)
             handlePointerDown(event)
-        }, 150); // adjust delay
+        }, 100);
     })
 
     canvas.addEventListener("pointerup", (event) => {
