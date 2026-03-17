@@ -18,8 +18,9 @@ a:visited {
 }
 
 #title {
-  min-width: 12%;
-  width: 12%;
+  margin: 10px;
+  min-width: 15%;
+  width: 15%;
   overflow-wrap: break-word;
 }
 
@@ -39,15 +40,6 @@ html {
   scrollbar-color: grey hsl(0, 0%, 13%);
 }
 
-body {
-  background-color: hsl(0, 0%, 13%);
-  margin: 0;
-  display: flex;
-  min-height: 100dvh;
-  height: auto;
-  width: auto;
-}
-
 button {
   border-radius: 0.3em;
   background-color: hsl(0, 1%, 83%);
@@ -63,16 +55,41 @@ input[type=number] {
   border-radius: 0.5em;
 }
 
+body {
+  background-color: hsl(0, 0%, 13%);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  min-height: 100dvh;
+  height: auto;
+  width: auto;
+}
+
+@media (min-width: 1050px) {
+  body {
+    justify-content: center;
+  }
+}
+
 .content {
   padding: 0 10px;
   display: flex;
-  overflow: auto;
-  align-items: center;
   justify-content: center;
+
+  align-items: center;
+  width: 100%;
 }
 
-@media only screen and (max-width: 1050px) {
+@media (min-width: 1050px) {
   .content {
+    max-height: 100%;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 1049px) {
+  .content {
+    flex-direction: column;
     display: flex;
     align-items: center;
     flex-direction: column;
@@ -100,15 +117,6 @@ input[type=number] {
   transform: rotate(90deg)
 }
 
-.text {
-  margin: 0 5px;
-  overflow: auto;
-  max-width: 0;
-  transition: max-width 0.2s ease-out;
-  text-align: justify;
-  text-justify: auto;
-}
-
 @media only screen and (max-width: 1050px) {
   .collapsible {
     transform: rotate(0deg);
@@ -117,19 +125,67 @@ input[type=number] {
   .collapsible.active {
     transform: rotate(180deg)
   }
+}
 
-  .text {
-    max-height: 0;
-    max-width: 80%;
-    transition: max-height 0.2s ease-out;
+/* Collapsible text panel */
+.text {
+  margin: 0 5px;
+  text-align: justify;
+  text-justify: auto;
+
+  overflow: hidden;
+
+  /* 🔥 critical for flexbox */
+  min-width: 0;
+
+  /* collapsed state */
+  max-width: 0;
+  max-height: 0;
+
+  padding-left: 0;
+  padding-right: 0;
+
+  transition:
+    max-width 0.3s ease,
+    max-height 0.3s ease,
+    padding 0.3s ease;
+}
+
+.text-inner {
+  overflow: auto;
+  max-height: 80dvh;
+  /* match your desktop constraint */
+}
+
+/* Desktop → expand horizontally */
+@media (min-width: 1050px) {
+  .text.open {
+    flex: 0 1 500px;
+    min-width: 250px;
+    max-width: 600px;
+    /* adjust as needed */
+    max-height: 80dvh;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+/* Mobile → expand vertically */
+@media (max-width: 1049px) {
+  .text.open {
+    max-width: none;
+    max-height: 1000px;
+    /* big enough to fit content */
+    padding-left: 10px;
+    padding-right: 10px;
   }
 }
 
 #app {
-  display: inline-flex;
-  width: fit-content;
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
   max-width: 100%;
-  overflow: auto;
 }
 
 canvas {

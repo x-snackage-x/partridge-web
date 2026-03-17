@@ -807,45 +807,14 @@ cancelSolButton.addEventListener("click", () => {
     drawPuzzleFromJournal()
 })
 
-
 let collButton = document.getElementsByClassName("collapsible")[0]
-function initTextContent() {
-    collButton.previousElementSibling.style.paddingLeft = "5px"
-    collButton.previousElementSibling.style.paddingRight = "5px"
-    if (window.screen.width > 1050) {
-        collButton.previousElementSibling.style.height =
-            canvasHeight * 1.1 + "px"
-    } else {
-        collButton.previousElementSibling.style.width = "100%"
-    }
-}
+const content = document.querySelector(".text");
 
 collButton.addEventListener("click", function () {
-    this.classList.toggle("active")
-    var content = this.previousElementSibling
-    if (content.style.maxWidth || content.style.maxHeight) {
-        content.style.paddingLeft = "0px"
-        content.style.paddingRight = "0px"
-        if (window.screen.width > 1050) {
-            content.style.maxWidth = null
-        } else {
-            content.style.maxHeight = null
-        }
-    } else {
-        content.style.paddingLeft = "5px"
-        content.style.paddingRight = "5px"
-        if (window.screen.width > 1050) {
-            console.log(window.screen.width)
-            content.style.height = canvasHeight * 1.1 + "px"
-            content.style.maxWidth = canvasHeight * 0.8 + "px"
-        } else {
-            console.log("here II")
-            content.style.maxHeight = window.screen.availHeight + "px"
-        }
-    }
-})
+    this.classList.toggle("active");
+    content.classList.toggle("open");
+});
 
-initTextContent()
 initCanvas()
 await initializeModel()
 
