@@ -807,22 +807,45 @@ cancelSolButton.addEventListener("click", () => {
     drawPuzzleFromJournal()
 })
 
-let collButtons = document.getElementsByClassName("collapsible")
-for (let i = 0; i < collButtons.length; i++) {
-    collButtons[i].addEventListener("click", function () {
-        this.classList.toggle("active")
-        var content = this.previousElementSibling
-        if (content.style.maxWidth) {
-            content.style.maxWidth = null
-        } else {
-            content.style.height = canvasHeight * 1.1 + "px"
-            content.style.maxWidth = canvasHeight * 0.75 + "px"
-        }
-    })
-    collButtons[i].previousElementSibling.style.height =
-        canvasHeight * 1.1 + "px"
+
+let collButton = document.getElementsByClassName("collapsible")[0]
+function initTextContent() {
+    collButton.previousElementSibling.style.paddingLeft = "5px"
+    collButton.previousElementSibling.style.paddingRight = "5px"
+    if (window.screen.width > 1050) {
+        collButton.previousElementSibling.style.height =
+            canvasHeight * 1.1 + "px"
+    } else {
+        collButton.previousElementSibling.style.width = "100%"
+    }
 }
 
+collButton.addEventListener("click", function () {
+    this.classList.toggle("active")
+    var content = this.previousElementSibling
+    if (content.style.maxWidth || content.style.maxHeight) {
+        content.style.paddingLeft = "0px"
+        content.style.paddingRight = "0px"
+        if (window.screen.width > 1050) {
+            content.style.maxWidth = null
+        } else {
+            content.style.maxHeight = null
+        }
+    } else {
+        content.style.paddingLeft = "5px"
+        content.style.paddingRight = "5px"
+        if (window.screen.width > 1050) {
+            console.log(window.screen.width)
+            content.style.height = canvasHeight * 1.1 + "px"
+            content.style.maxWidth = canvasHeight * 0.8 + "px"
+        } else {
+            console.log("here II")
+            content.style.maxHeight = window.screen.availHeight + "px"
+        }
+    }
+})
+
+initTextContent()
 initCanvas()
 await initializeModel()
 

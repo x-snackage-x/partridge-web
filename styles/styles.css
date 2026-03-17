@@ -23,6 +23,14 @@ a:visited {
   overflow-wrap: break-word;
 }
 
+@media only screen and (max-width: 1050px) {
+  #title {
+    overflow-wrap: break-word;
+    width: 100%;
+    text-align: center;
+  }
+}
+
 p {
   color: hsl(0, 1%, 83%);
 }
@@ -35,9 +43,9 @@ body {
   background-color: hsl(0, 0%, 13%);
   margin: 0;
   display: flex;
-  height: 100vh;
-  align-items: center;
-  justify-content: center;
+  min-height: 100dvh;
+  height: auto;
+  width: auto;
 }
 
 button {
@@ -61,6 +69,15 @@ input[type=number] {
   overflow: auto;
   align-items: center;
   justify-content: center;
+}
+
+@media only screen and (max-width: 1050px) {
+  .content {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: center;
+  }
 }
 
 .collapsible {
@@ -92,12 +109,27 @@ input[type=number] {
   text-justify: auto;
 }
 
+@media only screen and (max-width: 1050px) {
+  .collapsible {
+    transform: rotate(0deg);
+  }
+
+  .collapsible.active {
+    transform: rotate(180deg)
+  }
+
+  .text {
+    max-height: 0;
+    max-width: 80%;
+    transition: max-height 0.2s ease-out;
+  }
+}
+
 #app {
   display: inline-flex;
   width: fit-content;
   max-width: 100%;
   overflow: auto;
-  display: flex;
 }
 
 canvas {
