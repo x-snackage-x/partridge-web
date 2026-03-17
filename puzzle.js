@@ -29,6 +29,8 @@ let reqFrameId = undefined
 
 let trafficLightState = -1
 
+let pressTimer = null
+
 /** @type {HTMLCanvasElement} */
 let canvas = null
 let ctx = null
@@ -577,10 +579,26 @@ function initCanvas() {
         yCanvasTransform * dpr
     )
 
-    canvas.addEventListener("pointerleave", handlePointerLeave)
+    canvas.addEventListener("pointerleave",
+        () => {
+            clearTimeout(pressTimer)
+            handlePointerLeave()
+        })
     canvas.addEventListener("pointermove", handlePointerMove)
-    canvas.addEventListener("pointerdown", handlePointerDown)
-    canvas.addEventListener("pointerup", handlePointerUp)
+    canvas.addEventListener("pointerdown", (event) => {
+        if (event.pointerType !== "touch") {
+            handlePointerDown(event)
+            return
+        }
+
+        pressTimer = setTimeout(() => {
+            handlePointerDown(event)
+        }, 300); // adjust delay
+    })
+    canvas.addEventListener("pointerup", () => {
+        clearTimeout(pressTimer)
+        handlePointerUp()
+    })
 }
 
 function popEvents() {
