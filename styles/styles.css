@@ -19,8 +19,8 @@ a:visited {
 
 #title {
   margin: 10px;
-  min-width: 15%;
-  width: 15%;
+  min-width: 12%;
+  width: 12%;
   overflow-wrap: break-word;
 }
 
@@ -55,14 +55,20 @@ input[type=number] {
   border-radius: 0.5em;
 }
 
+* {
+  outline: 1px solid red;
+}
+
 body {
   background-color: hsl(0, 0%, 13%);
   margin: 0;
+
   display: flex;
   align-items: center;
-  min-height: 100dvh;
-  height: auto;
-  width: auto;
+
+  min-height: 100vh;
+
+  overflow-y: visible;
 }
 
 @media (min-width: 1050px) {
@@ -78,23 +84,31 @@ body {
 
   align-items: center;
   width: 100%;
+
+  min-height: 0;
 }
 
 @media (min-width: 1050px) {
   .content {
     max-height: 100%;
-    margin: 0 auto;
+    overflow-y: auto;
   }
 }
 
 @media (max-width: 1049px) {
   .content {
-    flex-direction: column;
     display: flex;
-    align-items: center;
     flex-direction: column;
+    align-items: center;
     justify-content: center;
   }
+}
+
+#app {
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .collapsible {
@@ -153,18 +167,18 @@ body {
 
 .text-inner {
   overflow: auto;
-  max-height: 80dvh;
-  /* match your desktop constraint */
+  max-height: 80vh;
+  /* match desktop constraint */
 }
 
 /* Desktop → expand horizontally */
 @media (min-width: 1050px) {
   .text.open {
     flex: 0 1 500px;
-    min-width: 250px;
+    min-width: 400px;
     max-width: 600px;
     /* adjust as needed */
-    max-height: 80dvh;
+    max-height: 80vh;
     padding-left: 10px;
     padding-right: 10px;
   }
@@ -179,13 +193,6 @@ body {
     padding-left: 10px;
     padding-right: 10px;
   }
-}
-
-#app {
-  display: flex;
-  flex: 1 1 0;
-  min-width: 0;
-  max-width: 100%;
 }
 
 canvas {
