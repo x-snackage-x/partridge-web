@@ -86,6 +86,7 @@ body {
   width: 100%;
 
   min-height: 0;
+  scroll-behavior: smooth;
 }
 
 @media (min-width: 1050px) {
@@ -169,6 +170,7 @@ body {
   overflow: auto;
   max-height: 80vh;
   /* match desktop constraint */
+  scroll-behavior: smooth;
 }
 
 /* Desktop → expand horizontally */
