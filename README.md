@@ -57,15 +57,12 @@ Sources that were useful while implementing the project.
 ## ToDo
 
 1. Fix
-    - Handle inputs over 16 -> Easter Egg
+    - Canvas situation on mobile
+    - Better select strat on mobile
     - Solution to pick up 1x1 tiles when they are very small
 1. Design:
-    - Nicer checkbox?
     - Nicer Buttons?
 1. Text Content
     - Multiple language support
     - InfoBoxes
-1. Mobile optimizations
-    - Select with pressure maybe?
-    - Vertical aligned canvas
 1. Don't render on every mouse event -> Refactor to render loop

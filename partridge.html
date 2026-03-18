@@ -51,9 +51,10 @@
                     responsive excess events are dropped. This will manifest in the visualizer occasionally de-syncing
                     tile placements and removals.
                 </p>
-                <p>While the page layout works on mobile, the implemented touch controls for dragging the tiles don't
-                    work very well. I don't know how much effort I will invest in making them better though. I do plan
-                    on at least improving the solver a bit more in order to detect unsolvable branches sooner.</p>
+                <p>While the page layout works on mobile, the implemented touch controls for dragging the tiles and the
+                    canvas layout-ing itself don't work very well. I don't know how much effort I will invest in making
+                    them better though. I do plan on at least improving the solver a bit more in order to detect
+                    unsolvable branches sooner.</p>
             </div>
         </div>
         <button type="button" class="collapsible"></button>
@@ -81,9 +82,11 @@
                     <div class="controlSubFunctions">
                         <button id="findSolutionButton" class="button-pretty">Find a Solution</button>
                         <div id="visualizer">
-                            <label for="visualizerToggle">Visualizer:
-                                <input type="checkbox" id="visualizerToggle" class="input">
-                            </label>
+                            <div class="checkbox-wrapper-2">
+                                <label for="visualizerToggle"><span>Visualizer:</span>
+                                    <input type="checkbox" class="sc-gJwTLC ikxBAC" id="visualizerToggle">
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>

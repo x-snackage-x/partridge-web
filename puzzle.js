@@ -177,6 +177,10 @@ async function initPuzzle(puzzleTypeIn) {
 
     if (worker == null) {
         startNewSolverWorker()
+    } else {
+        isSolvableButton.disabled = false
+        findSolutionButton.disabled = false
+        visualizerToggle.disabled = false
     }
     // scale down the puzzle for special case of 1
     if (puzzleType == 1) {
@@ -579,13 +583,20 @@ function initCanvas() {
         yCanvasTransform * dpr
     )
 
-    canvas.addEventListener("pointerleave",
-        () => {
-            clearTimeout(pressTimer)
-            handlePointerLeave()
-        })
+    canvas.addEventListener("pointerleave", () => {
+        if (puzzleTypeInput.valueAsNumber > 16) {
+            return
+        }
+        clearTimeout(pressTimer)
+        handlePointerLeave()
+    })
 
-    canvas.addEventListener("pointermove", handlePointerMove)
+    canvas.addEventListener("pointermove", (event) => {
+        if (puzzleTypeInput.valueAsNumber > 16) {
+            return
+        }
+        handlePointerMove(event)
+    })
 
     canvas.addEventListener("pointerdown", (event) => {
         if (event.pointerType !== "touch") {
@@ -769,8 +780,28 @@ function startNewSolverWorker() {
 
 const puzzleTypeInput = document.getElementById("puzzleTypeInput")
 puzzleTypeInput.addEventListener("change", () => {
+    isSolvableButton.disabled = true
+    findSolutionButton.disabled = true
+    visualizerToggle.disabled = true
+
     ctx.clearRect(0 - xCanvasTransform, 0 - yCanvasTransform,
         canvasWidth, canvasHeight)
+
+    if (puzzleTypeInput.valueAsNumber > 16) {
+        ctx.font = 18 + "px monospace"
+        ctx.textAlign = "center"
+        ctx.textBaseline = "middle"
+        ctx.fillStyle = "white"
+        let text_1 = "Trying to find a solution for a size greater than 10 is already excessive."
+        let text_2 = "Let alone over 16. I refuse to entertain such an absurd demand."
+        let text_3 = "(This has nothing to do with the solver only allocating 16 bits for the tile-type bitmask)"
+        ctx.fillText(text_1, canvasWidth / 2, canvasHeight / 2)
+        ctx.fillText(text_2, canvasWidth / 2, canvasHeight / 2 + 24)
+        ctx.font = 14 + "px monospace"
+        ctx.fillText(text_3, canvasWidth / 2, canvasHeight / 2 + 100)
+        return
+    }
+
     api.freePuzzle(my_puzzle_ptr)
     Module.setValue(my_puzzle_ptr, 0, 'i32')
     initPuzzle(puzzleTypeInput.valueAsNumber).then(() => {

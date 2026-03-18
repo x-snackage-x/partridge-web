@@ -259,9 +259,19 @@ canvas {
   stroke-width: 1
 }
 
+#visualizer {
+  padding-top: 3px;
+  display: inline-block;
+}
+
 #visualizer label {
   color: whitesmoke;
   font-size: 90%;
+  height: 100%;
+}
+
+#visualizer label span {
+  vertical-align: super;
 }
 
 @keyframes spin {
@@ -273,4 +283,68 @@ canvas {
 #spinner {
   transform-origin: center;
   animation: spin 1s linear infinite;
+}
+
+/* Modified from design by "Linear":https://getcssscan.com/css-checkboxes-examples */
+.checkbox-wrapper-2 .ikxBAC {
+  appearance: none;
+  background-color: hsl(0, 1%, 83%);
+  border-radius: 72px;
+  border-style: none;
+  flex-shrink: 0;
+  height: 20px;
+  margin: 0;
+  position: relative;
+  width: 30px;
+}
+
+.checkbox-wrapper-2 .ikxBAC::before {
+  bottom: -6px;
+  content: "";
+  left: -6px;
+  position: absolute;
+  right: -6px;
+  top: -6px;
+}
+
+.checkbox-wrapper-2 .ikxBAC,
+.checkbox-wrapper-2 .ikxBAC::after {
+  transition: all 100ms ease-out;
+}
+
+.checkbox-wrapper-2 .ikxBAC::after {
+  background-color: hsl(0, 0%, 23%);
+  border-radius: 50%;
+  content: "";
+  height: 14px;
+  left: 3px;
+  position: absolute;
+  top: 3px;
+  width: 14px;
+}
+
+.checkbox-wrapper-2 input[type=checkbox] {
+  cursor: default;
+}
+
+.checkbox-wrapper-2 .ikxBAC:hover {
+  background-color: #c9cbcd;
+  transition-duration: 0s;
+}
+
+.checkbox-wrapper-2 .ikxBAC:checked {
+  background-color: hsl(120, 20%, 51%);
+}
+
+.checkbox-wrapper-2 .ikxBAC:checked::after {
+  background-color: #fff;
+  left: 13px;
+}
+
+.checkbox-wrapper-2 :focus:not(.focus-visible) {
+  outline: 0;
+}
+
+.checkbox-wrapper-2 .ikxBAC:checked:hover {
+  background-color: hsl(130, 32%, 57%);
 }
