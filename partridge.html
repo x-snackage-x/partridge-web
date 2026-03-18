@@ -21,31 +21,25 @@
                 <p>This project was inspired by the <strong>Stand-up Maths</strong> video <a
                         href="https://www.youtube.com/watch?v=eqyuQZHfNPQ">The impossible puzzle with over a
                         million solutions!</a> (because of YouTube's A/B-Testing stuff, the title isn't static). The
-                    puzzle
-                    is a visual illustration of the <a
+                    puzzle is a visual illustration of the <a
                         href="https://en.wikipedia.org/wiki/Squared_triangular_number">Triangle Number relation</a> that
-                    the
-                    sum of the first \(n\) cubes is equal to the square of \(n\)-th triangle number (easily proven by
-                    induction): \[\sum_{k=1}^{n} k^3 = (\sum_{k=1}^{n} k)^2. \]</p>
+                    states that the sum of the first \(n\) cubes is equal to the square of the \(n\)-th triangle number
+                    (easily proven by induction): \[\sum_{k=1}^{n} k^3 = (\sum_{k=1}^{n} k)^2. \]
+                </p>
                 <p>While this is necessary for a tiling of the square to exist, it is not sufficient as can be seen in
-                    the
-                    \(n = 2\) case. A tiling is however guaranteed for all cases above \(n = 7\), so including the
-                    trivial
-                    case the tiling set is \(n \in \mathbb{N}\setminus[2,7]\).
+                    the \(n = 2\) case. A tiling is however guaranteed for all cases above \(n = 7\), so including the
+                    trivial case the tiling set is \(n \in \mathbb{N}\setminus[2,7]\).
                 </p>
                 <p>This static webpage, repo <a href="https://github.com/x-snackage-x/partridge-web">
                         here</a>, provides a front-end for a <a href="https://github.com/x-snackage-x/partridge-solver">
                         solver</a> I implemented in C and compiled to WASM with Emscripten. The solver works by
-                    descending a
-                    decision tree recursively until a solution is found or the puzzle reaches an unsolvable state, where
-                    it
-                    removes the last tile and places a different one. If no placements are possible, then the starting
-                    configuration was unsolvable. This is in essence an exhaustive search of the possibility space, so
-                    it is
-                    guaranteed to terminate. The choice of which tile to place next, excluding already placed tiles at
-                    that
-                    position, is random so while the solver is guaranteed to terminate the execution time is not
-                    deterministic. Depending on your luck, you could get a solution in seconds or hours.
+                    descending a decision tree recursively until a solution is found or the puzzle reaches an unsolvable
+                    state, where it removes the last tile and places a different one. If no placements are possible,
+                    then the starting configuration was unsolvable. This is in essence an exhaustive search of the
+                    possibility space, so it is guaranteed to terminate. The choice of which tile to place next,
+                    excluding already placed tiles at that position, is random so while the solver is guaranteed to
+                    terminate the execution time is not deterministic. Depending on your luck, you could get a solution
+                    in seconds or hours.
                 </p>
                 <p>The solver creates many more events than the visualizer can process and in order to keep the page
                     responsive excess events are dropped. This will manifest in the visualizer occasionally de-syncing
