@@ -34,6 +34,8 @@ a:visited {
 
 p {
   color: hsl(0, 1%, 83%);
+  padding-left: 5px;
+  padding-right: 5px;
 }
 
 html {
@@ -186,8 +188,8 @@ body {
     max-width: 600px;
     /* adjust as needed */
     max-height: 80vh;
-    padding-left: 10px;
-    padding-right: 10px;
+    padding-left: 5px;
+    padding-right: 5px;
   }
 }
 
