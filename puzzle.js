@@ -787,6 +787,10 @@ puzzleTypeInput.addEventListener("change", () => {
     ctx.clearRect(0 - xCanvasTransform, 0 - yCanvasTransform,
         canvasWidth, canvasHeight)
 
+    if (!puzzleTypeInput.valueAsNumber) {
+        puzzleTypeInput.value = 8
+    }
+
     if (puzzleTypeInput.valueAsNumber > 16) {
         ctx.font = 18 + "px monospace"
         ctx.textAlign = "center"
@@ -811,6 +815,24 @@ puzzleTypeInput.addEventListener("change", () => {
     })
     tileSelectLocations = []
 })
+
+const puzzleTypeInputPlus = document.getElementById("puzzleTypeInputPlus")
+puzzleTypeInputPlus.addEventListener("click", () => {
+    let currentPuzzleType = puzzleTypeInput.valueAsNumber
+    currentPuzzleType = currentPuzzleType > 16 ? 8 : currentPuzzleType
+    currentPuzzleType = (++currentPuzzleType) % 17
+    puzzleTypeInput.value = currentPuzzleType == 0 ? 1 : currentPuzzleType
+    puzzleTypeInput.dispatchEvent(new Event('change'));
+})
+const puzzleTypeInputMinus = document.getElementById("puzzleTypeInputMinus")
+puzzleTypeInputMinus.addEventListener("click", () => {
+    let currentPuzzleType = puzzleTypeInput.valueAsNumber
+    currentPuzzleType = currentPuzzleType > 16 ? 8 : currentPuzzleType
+    currentPuzzleType = (--currentPuzzleType) % 17
+    puzzleTypeInput.value = currentPuzzleType == 0 ? 16 : currentPuzzleType
+    puzzleTypeInput.dispatchEvent(new Event('change'));
+})
+
 
 const isSolvableButton = document.getElementById("isSolvableButton")
 isSolvableButton.disabled = true

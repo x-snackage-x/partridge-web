@@ -242,6 +242,9 @@ canvas {
 
 #controls>* {
   margin: 5px;
+}
+
+.puzzleTypeInputControls>* {
   text-align: center;
 }
 

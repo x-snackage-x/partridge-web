@@ -57,7 +57,7 @@ Sources that were useful while implementing the project.
 ## ToDo
 
 1. Fix
-    - Canvas situation on mobile
+    - Canvas situation on mobile including resize behavior
     - Better select strat on mobile
     - Solution to pick up 1x1 tiles when they are very small
 1. Design:
