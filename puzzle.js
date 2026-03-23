@@ -701,6 +701,8 @@ function triggerSolver(withResults) {
 
     drawPuzzleFromJournal()
     puzzleTypeInput.disabled = true
+    puzzleTypeInputPlus.disabled = true
+    puzzleTypeInputMinus.disabled = true
     isSolvableButton.disabled = true
     findSolutionButton.disabled = true
     visualizerToggle.disabled = true
@@ -757,6 +759,8 @@ function startNewSolverWorker() {
             journalRemoveThresholdIndex = 0
 
             puzzleTypeInput.disabled = false
+            puzzleTypeInputPlus.disabled = false
+            puzzleTypeInputMinus.disabled = false
             isSolvableButton.disabled = false
             findSolutionButton.disabled = false
             visualizerToggle.disabled = false
@@ -877,6 +881,8 @@ cancelSolButton.addEventListener("click", () => {
     }
 
     puzzleTypeInput.disabled = false
+    puzzleTypeInputPlus.disabled = false
+    puzzleTypeInputMinus.disabled = false
     journalRemoveThresholdIndex = 0
     trafficLightState = -5
     if (isSolvableButton.disabled) { changeTrafficLight(-1) }
