@@ -28,11 +28,11 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
       - name: Inject service worker
         run: |
           sed -i 's|</head>|<script src="coi-serviceworker.js"></script></head>|' partridge.html
-      - name: Checkout
-        uses: actions/checkout@v6
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
