@@ -5,7 +5,7 @@ export default {
             "Cross-Origin-Opener-Policy": "same-origin",
             "Cross-Origin-Embedder-Policy": "require-corp"
         },
-        open: '/partridge.html',
+        open: 'partridge.html',
     },
     build: {
         rollupOptions: {
