@@ -42,6 +42,14 @@ html {
   scrollbar-color: grey hsl(0, 0%, 13%);
 }
 
+#isSolvableButton {
+  width: 110px;
+}
+
+#findSolutionButton {
+  width: 90px;
+}
+
 button {
   border-radius: 0.3em;
   background-color: hsl(0, 1%, 83%);
